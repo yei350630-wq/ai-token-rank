@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Token 排行榜</title>
+<style>
+  :root{
+    --bg:#f5f4f1;
+    --card:#ffffff;
+    --line:#e7e5e0;
+    --ink:#191917;
+    --ink2:#5f5e58;
+    --ink3:#96948c;
+    --accent:#f0512a;
+    --accent-soft:#fff0eb;
+    --gold:#b8902f;
+    --silver:#8a8f96;
+    --bronze:#a9724a;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    font-size:14px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    padding:28px 20px 64px;
+  }
+  .wrap{max-width:860px;margin:0 auto}
+
+  /* ---------- header ---------- */
+  .top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+  h1{font-size:21px;font-weight:700;letter-spacing:-.4px}
+  h1 em{font-style:normal;color:var(--accent)}
+  .top .sub{font-size:12px;color:var(--ink3);margin-top:4px}
+  .stamp{font-size:11px;color:var(--ink3);text-align:right;line-height:1.7;white-space:nowrap}
+  .stamp b{display:block;color:var(--ink2);font-weight:600}
+
+  .stale{
+    display:none;background:#fff8e6;border:1px solid #f0dfa8;color:#8a6a12;
+    border-radius:10px;padding:9px 13px;font-size:12px;margin-bottom:14px;
+  }
+  .stale.on{display:block}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-40px;top:-40px;width:170px;height:170px;
+    background:radial-gradient(circle,rgba(240,81,42,.09),transparent 68%);border-radius:50%;
+  }
+  .hero .cap{font-size:12.5px;color:var(--ink2);margin-bottom:6px}
+  .hero .cap b{color:var(--ink);font-weight:750;font-size:13.5px;letter-spacing:-.2px}
+  .hero .big{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+  .hero .big .num{font-size:34px;font-weight:800;letter-spacing:-1.6px;line-height:1;font-variant-numeric:tabular-nums}
+  .hero .big .unit{font-size:16px;font-weight:600;color:var(--ink2)}
+  .hero .meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--ink2)}
+  .hero .meta i{font-style:normal;color:var(--ink3);margin-right:5px}
+  .hero .meta b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
+  .hgrid{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;position:relative;z-index:1}
+  .hcell{min-width:0}
+  .hcell.champ{border-left:1px solid var(--line);padding-left:18px}
+  .hcost{display:flex;align-items:baseline;gap:9px;margin-top:7px;flex-wrap:wrap}
+  .hcost .cny{font-size:31px;font-weight:800;color:var(--accent);letter-spacing:-1.2px;line-height:1;font-variant-numeric:tabular-nums}
+  .hcost .usd{font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .crow{display:flex;align-items:center;gap:9px;margin-top:9px}
+  .cav{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;font-weight:600;flex:none}
+  .cname{font-size:17px;font-weight:750;letter-spacing:-.4px;line-height:1.25}
+  .crole{font-size:11px;color:var(--ink3);margin-top:1px}
+  .cstat{margin-top:10px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .ctok{font-size:16px;font-weight:750;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+  .ctok small{font-size:11px;font-weight:600;color:var(--ink3);margin-left:1px}
+  .cshare{font-size:11px;color:var(--accent);background:var(--accent-soft);padding:2px 7px;border-radius:6px;font-weight:650}
+
+  /* ---------- filters ---------- */
+  .filters{display:flex;flex-direction:column;gap:9px;margin-bottom:16px}
+  .frow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .frow .lab{font-size:11px;color:var(--ink3);width:34px;flex:none;letter-spacing:.5px}
+  .chip{
+    background:var(--card);border:1px solid var(--line);color:var(--ink2);
+    border-radius:9px;padding:6px 13px;font-size:12.5px;cursor:pointer;
+    transition:.15s;font-family:inherit;white-space:nowrap;
+  }
+  .chip:hover{border-color:#cecbc3;color:var(--ink)}
+  .chip.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+  .chip.on.acc{background:var(--accent);border-color:var(--accent)}
+
+  /* ---------- list ---------- */
+  .board{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .bhead{
+    display:flex;justify-content:space-between;padding:11px 18px;font-size:11px;
+    color:var(--ink3);border-bottom:1px solid var(--line);background:#fbfaf8;
+  }
+  .row{
+    display:flex;align-items:center;gap:14px;padding:13px 18px;
+    border-bottom:1px solid #f2f0ec;position:relative;
+  }
+  .row:last-child{border-bottom:none}
+  .row:hover{background:#fcfbf9}
+  .rank{
+    width:26px;flex:none;text-align:center;font-size:15px;font-weight:700;
+    color:var(--ink3);font-variant-numeric:tabular-nums;
+  }
+  .rank.r1{color:var(--gold)}
+  .rank.r2{color:var(--silver)}
+  .rank.r3{color:var(--bronze)}
+  .av{
+    width:30px;height:30px;flex:none;border-radius:50%;display:flex;
+    align-items:center;justify-content:center;font-size:13px;font-weight:600;
+    color:#fff;letter-spacing:0;user-select:none;
+  }
+  .who{flex:1;min-width:0}
+  .who .nm{font-size:14.5px;font-weight:650;display:flex;align-items:center;gap:7px}
+  .who .nm span{font-weight:400;font-size:11.5px;color:var(--ink3)}
+  .who .brk{font-size:11px;color:var(--ink3);margin-top:3px;display:flex;gap:9px;flex-wrap:wrap}
+  .who .brk b{font-weight:600;color:var(--ink2)}
+  .bar{height:3px;background:#f1efeb;border-radius:2px;margin-top:7px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#f8a98d,var(--accent));border-radius:2px}
+  .val{text-align:right;flex:none;min-width:104px}
+  .val .v{font-size:16px;font-weight:750;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+  .val .v small{font-size:11px;font-weight:600;color:var(--ink3);margin-left:2px}
+  .val .x{font-size:11px;color:var(--ink3);margin-top:2px;font-variant-numeric:tabular-nums}
+  .empty{padding:44px 20px;text-align:center;color:var(--ink3);font-size:13px}
+  .dncap{font-size:11.5px;color:var(--ink3);margin-top:9px;line-height:1.65}
+
+  /* ---------- insights ---------- */
+  .insights{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  .icard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px}
+  .icard .k{font-size:11px;color:var(--ink3);margin-bottom:7px;letter-spacing:.3px}
+  .icard .v{font-size:19px;font-weight:750;letter-spacing:-.5px;line-height:1.2}
+  .icard .d{font-size:11.5px;color:var(--ink2);margin-top:6px;line-height:1.55}
+
+  /* ---------- trend ---------- */
+  .trend{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-top:14px}
+  .trend .th{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .trend .th b{font-size:13px;font-weight:650}
+  .trend .th span{font-size:11px;color:var(--ink3)}
+  .spark{display:flex;align-items:flex-end;gap:5px;height:76px}
+  .spark .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;height:100%}
+  .spark .col i{width:100%;background:#e8e5df;border-radius:3px 3px 0 0;min-height:2px;transition:.2s}
+  .spark .col.on i{background:var(--accent)}
+  .spark .col i:hover{background:var(--accent);opacity:.75}
+  .spark .col em{font-size:9.5px;color:var(--ink3);font-style:normal;white-space:nowrap}
+  .spark .col.on em{color:var(--accent);font-weight:600}
+
+  .dtable{margin-top:15px;border-top:1px solid var(--line);padding-top:10px}
+  .dtable .dr{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:12.5px;border-bottom:1px solid #f6f4f0}
+  .dtable .dr:last-child{border-bottom:none}
+  .dtable .dd{width:68px;flex:none;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .dtable .dt{flex:1;color:var(--ink);font-variant-numeric:tabular-nums}
+  .dtable .dc{width:78px;text-align:right;color:var(--accent);font-weight:650;flex:none;font-variant-numeric:tabular-nums}
+  .dtable .dr.hd{font-size:11px;color:var(--ink3);border-bottom:1px solid var(--line)}
+  .dtable .dr.hd .dc{color:var(--ink3);font-weight:400}
+  .dtable .dr.tot{font-weight:700;border-top:1px solid var(--line);border-bottom:none;padding-top:9px}
+  .dtable .dr.tot .dc{color:var(--ink)}
+
+  .foot{margin-top:22px;font-size:11px;color:var(--ink3);line-height:1.9}
+  .foot b{color:var(--ink2);font-weight:600}
+  .foot code{background:#eceae4;padding:1px 5px;border-radius:4px;font-size:10.5px}
+
+  @media(max-width:600px){
+    body{padding:20px 13px 48px}
+    .top{flex-direction:column;gap:5px;align-items:stretch}
+    .stamp{text-align:left;white-space:normal;font-size:10.5px}
+    .stamp b{display:inline;margin-left:5px}
+    .hero .big .num{font-size:32px}
+    .hero{padding:18px}
+    .hgrid{grid-template-columns:1fr;gap:0}
+    .hcell.champ{border-left:none;padding-left:0;margin-top:14px;padding-top:13px;border-top:1px solid var(--line)}
+    .hcost .cny{font-size:26px}
+    .cname{font-size:16px}
+    .insights{grid-template-columns:1fr}
+    .val{min-width:82px}
+    .val .v{font-size:14px}
+    .who .nm{font-size:13.5px}
+    .row{padding:12px 13px;gap:9px}
+    .rank{width:20px;font-size:13px}
+    .av{display:none}
+    .chip{padding:5px 10px;font-size:12px}
+    .frow .lab{width:28px}
+    .spark{gap:3px}
+    .spark .col em{font-size:8px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>Agent <em>Token</em> 排行榜</h1>
+      <div class="sub">再省不能省 token —— 烧得多，说明真在干活</div>
+    </div>
+    <div class="stamp">数据快照<b id="stamp">—</b></div>
+  </div>
+
+  <div class="stale" id="stale"></div>
+
+  <div class="hero">
+    <div class="hgrid">
+
+      <div class="hcell">
+        <div class="cap" id="heroCap">这个区间一共烧了</div>
+        <div class="big">
+          <span class="num" id="heroNum">—</span>
+          <span class="unit" id="heroUnit">tokens</span>
+        </div>
+        <div class="hcost">
+          <span class="cny" id="heroCny">—</span>
+          <span class="usd" id="heroUsd">—</span>
+          <span class="split" id="heroSplit"></span>
+        </div>
+      </div>
+
+      <div class="hcell champ">
+        <div class="cap">烧得最狠的是</div>
+        <div class="crow">
+          <span class="cav" id="champAv">—</span>
+          <div>
+            <div class="cname" id="champName">—</div>
+            <div class="crole" id="champRole">—</div>
+          </div>
+        </div>
+        <div class="cstat">
+          <span class="ctok" id="champTok">—</span>
+          <span class="cshare" id="champShare">—</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="meta">
+      <div><i>参与 Agent</i><b id="mAgents">—</b></div>
+      <div><i>API 调用</i><b id="mCalls">—</b></div>
+      <div><i>平均单次</i><b id="mPer">—</b></div>
+      <div><i id="mCostLab">汇率</i><b id="mCost">—</b></div>
+    </div>
+  </div>
+
+  <div class="filters">
+    <div class="frow" id="fRange">
+      <span class="lab">时间</span>
+      <button class="chip on acc" data-v="today">今天</button>
+      <button class="chip" data-v="yesterday">昨天</button>
+      <button class="chip" data-v="3d">近 3 天</button>
+      <button class="chip" data-v="7d">近 7 天</button>
+      <button class="chip" data-v="30d">近 30 天</button>
+      <button class="chip" data-v="all">全部</button>
+    </div>
+    <div class="frow" id="fModel">
+      <span class="lab">模型</span>
+      <button class="chip on" data-v="all">全部</button>
+      <button class="chip" data-v="deepseek-v4-flash">V4-Flash</button>
+      <button class="chip" data-v="deepseek-v4-pro">V4-Pro</button>
+      <button class="chip" data-v="other">其他</button>
+    </div>
+    <div class="frow" id="fMetric">
+      <span class="lab">口径</span>
+      <button class="chip" data-v="cache">含缓存</button>
+      <button class="chip" data-v="nocache">不含缓存</button>
+      <button class="chip on" data-v="cost">预估费用</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="bhead"><span>名次 / Agent</span><span id="bHeadRight">消耗 tokens</span></div>
+    <div id="list"></div>
+  </div>
+  <div class="dncap" id="dncap"></div>
+
+  <div class="insights" id="insights"></div>
+
+  <div class="trend">
+    <div class="th"><b>每日消耗趋势</b><span>近 14 天 · 含缓存 · 全模型</span></div>
+    <div class="spark" id="spark"></div>
+    <div class="dtable" id="dtable"></div>
+  </div>
+
+  <div class="foot">
+    <b>统计规则</b>　数据源 <code>%LOCALAPPDATA%\hermes\profiles\*\state.db</code> 的 <code>session_model_usage</code> 表，读的是真实 API 回执，非估算。<br>
+    含缓存 = input + output + cache_read + cache_write；reasoning tokens 已包含在 output 内，不重复叠加。<br>
+    <b>日维度只算「当天开、当天结」的会话（真实量、不虚高）。</b>跨天常驻会话（first_seen≠last_seen）的累计<b>不摊进任何单日</b>，只在下方全期总量与按 Agent 排名里体现——因为它的逐日增量底层库根本不存在，强行拆分只会造假。<b>所以看「今天烧多少」请认准今天视图（已剔除跨天），跨天会话请去全期/按 Agent 看。</b><br>
+    <b>真账校准：</b>本地库 <code>session_model_usage</code> 只存「会话累计总量」、无按天增量，所以跨天常驻会话（小F/小畅/小重等跑好几天的 Agent）的当日消耗本地无法拆分——这是早前"今天"和官方对不上的根因，不是 bug。<br>
+    <b>三种口径并列：</b>①<b>官方平台日账</b>（<code>official_daily.jsonl</code>，从平台用量页录入的权威当日真值：费用/请求/token）单日视图头条直接采用，与平台对账；②<b>本地增量口径</b>（<code>usage_increments.jsonl</code>，每天快照每个会话累计值、与基线比对得出真增量，<b>午夜对齐自然日</b>）从第二天起自动精确，含跨天会话当日部分；③<b>same_day 下限</b>（仅当天开当天结）是增量数据未覆盖时的回退。余额接口只给当前余额、不给逐日消费，故"当日真账"由各日余额差自动生成（午夜为主、04:00 兜底）。<br>
+    单会话已 300 条消息零压缩，单次调用要读 19 万 token 上下文，这才是长会话 Agent 贵的真正原因。<br>
+    <b>金额按 1 美元 = 7.2 元折算</b>，只用来给数额一个体感；真实账单以美元为准，汇率变了这里是近似值。<br>
+    <b>刷新方法：</b><code>python token_rank.py</code>（每日 04:00 计划任务自动执行，日志见 <code>refresh.log</code>）。
+  </div>
+
+</div>
+
+<script>
+const DATA = {"generated_at":1792548214,"today":"2026-10-21","source":"hermes/profiles/*/state.db · session_model_usage","model_label":{"deepseek-v4-pro":"V4-Pro","deepseek-v4-flash":"V4-Flash","deepseek-flash":"DS-Flash","qwen3:4b":"Qwen3-4B"},"official":{"balance_cny":51.27,"delta_cny":-49.67,"delta_date":"2026-10-20","delta_consumption_day":null,"last_date":"2026-10-21","delta_note":"delta=上条余额-本次余额（跨天=上条日期当日消费）；期间有充值则差额含充值额"},"official_daily":{"2026-10-20":{"date":"2026-10-20","cost_cny":6.0,"requests":577,"tokens":44983365,"source":"官方平台用量页截图（topup/usage）","entered_at":"2026-10-20T23:14","note":"DeepSeek 官方平台当日真值；本地 session_model_usage 无日增量，跨天会话当日部分无法本地拆分，故以官方为准"},"2026-10-21":{"date":"2026-10-21","cost_cny":4.49,"requests":620,"tokens":31896625,"source":"官方平台用量页截图(platform.deepseek.com 用量)","entered_at":"2026-10-21T10:01","note":"官方平台当日真值"}},"daily":[],"rows":[{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-24","xd":0,"t":1787563762,"m":"deepseek-v4-pro","a":1,"i":22707,"o":39,"c":0,"w":0,"g":34,"u":0.009911},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-24","xd":0,"t":1787586849,"m":"deepseek-v4-pro","a":3,"i":3410,"o":4055,"c":482304,"w":0,"g":3320,"u":0.00676},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-25","xd":1,"t":1787650013,"m":"deepseek-v4-pro","a":13,"i":4322,"o":3336,"c":2432,"w":0,"g":3284,"u":0.004791},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-25","xd":1,"t":1787650224,"m":"deepseek-v4-pro","a":104,"i":257482,"o":120664,"c":10244608,"w":0,"g":97934,"u":0.254119},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-25","xd":0,"t":1787652460,"m":"qwen3:4b","a":1,"i":2050,"o":533,"c":0,"w":0,"g":0,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-25","xd":0,"t":1787654558,"m":"qwen3:4b","a":2,"i":4100,"o":2726,"c":0,"w":0,"g":0,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-25","xd":0,"t":1787665447,"m":"qwen3:4b","a":2,"i":4100,"o":7846,"c":0,"w":0,"g":0,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-26","xd":0,"t":1787753936,"m":"qwen3:4b","a":2,"i":4100,"o":2789,"c":0,"w":0,"g":0,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-28","xd":0,"t":1787909621,"m":"qwen3:4b","a":4,"i":8200,"o":6824,"c":0,"w":0,"g":0,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-28","xd":0,"t":1787914759,"m":"deepseek-v4-flash","a":1,"i":22747,"o":8,"c":0,"w":0,"g":0,"u":0.003187},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-28","xd":0,"t":1787920290,"m":"deepseek-v4-flash","a":2,"i":827,"o":836,"c":0,"w":0,"g":828,"u":0.00035},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-28","xd":0,"t":1787920292,"m":"deepseek-v4-flash","a":15,"i":32200,"o":2752,"c":409856,"w":0,"g":0,"u":0.006426},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-28","xd":0,"t":1787920311,"m":"deepseek-v4-flash","a":4,"i":4128,"o":1662,"c":144768,"w":0,"g":0,"u":0.001449},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-29","xd":0,"t":1787934199,"m":"deepseek-v4-flash","a":3,"i":4046,"o":1562,"c":176128,"w":0,"g":0,"u":0.001497},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-29","xd":0,"t":1787937534,"m":"deepseek-v4-flash","a":29,"i":56547,"o":8264,"c":1507328,"w":0,"g":0,"u":0.014451},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-29","xd":0,"t":1787972526,"m":"deepseek-v4-flash","a":17,"i":12117,"o":4096,"c":529792,"w":0,"g":0,"u":0.004327},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-29","xd":0,"t":1787972548,"m":"deepseek-v4-flash","a":4,"i":4899,"o":2093,"c":158976,"w":0,"g":0,"u":0.001717},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-31","xd":0,"t":1788144131,"m":"deepseek-v4-flash","a":4,"i":5824,"o":2188,"c":172416,"w":0,"g":0,"u":0.001911},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-31","xd":0,"t":1788145927,"m":"deepseek-v4-flash","a":7,"i":2854,"o":687,"c":1792,"w":0,"g":659,"u":0.000597},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-08-31","xd":0,"t":1788145932,"m":"deepseek-v4-flash","a":23,"i":39987,"o":8989,"c":773632,"w":0,"g":0,"u":0.010281},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-01","xd":0,"t":1788192575,"m":"deepseek-v4-flash","a":9,"i":2792,"o":2529,"c":2304,"w":0,"g":2493,"u":0.001105},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-01","xd":1,"t":1788192579,"m":"deepseek-v4-flash","a":21,"i":37106,"o":5590,"c":738048,"w":0,"g":0,"u":0.008827},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-01","xd":0,"t":1788192638,"m":"deepseek-v4-flash","a":6,"i":7775,"o":7862,"c":319872,"w":0,"g":0,"u":0.004186},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-03","xd":1,"t":1788368065,"m":"deepseek-v4-flash","a":23,"i":6193,"o":3273,"c":5888,"w":0,"g":3182,"u":0.0018},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-03","xd":1,"t":1788368067,"m":"deepseek-v4-flash","a":74,"i":106733,"o":31381,"c":6726912,"w":0,"g":0,"u":0.042565},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-03","xd":0,"t":1788368140,"m":"deepseek-v4-flash","a":11,"i":13141,"o":7435,"c":1557632,"w":0,"g":0,"u":0.008283},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-19","xd":0,"t":1789822149,"m":"deepseek-flash","a":1,"i":483,"o":598,"c":0,"w":0,"g":327,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-19","xd":0,"t":1789822409,"m":"deepseek-flash","a":3,"i":1120,"o":214,"c":128,"w":0,"g":202,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-19","xd":0,"t":1789822475,"m":"deepseek-v4-flash","a":56,"i":82882,"o":15710,"c":3734784,"w":0,"g":0,"u":0.02646},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-20","xd":0,"t":1789912402,"m":"deepseek-flash","a":5,"i":2106,"o":233,"c":384,"w":0,"g":213,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-20","xd":0,"t":1789912409,"m":"deepseek-v4-flash","a":1,"i":1620,"o":125,"c":53504,"w":0,"g":0,"u":0.000412},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-20","xd":0,"t":1789912413,"m":"deepseek-v4-flash","a":46,"i":39658,"o":12421,"c":1812224,"w":0,"g":0,"u":0.014104},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-22","xd":0,"t":1790042706,"m":"deepseek-flash","a":2,"i":2601,"o":2167,"c":0,"w":0,"g":1051,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-22","xd":0,"t":1790043069,"m":"deepseek-flash","a":1,"i":486,"o":781,"c":0,"w":0,"g":777,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-22","xd":0,"t":1790043165,"m":"deepseek-v4-flash","a":30,"i":35399,"o":10267,"c":1845632,"w":0,"g":0,"u":0.012998},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-22","xd":0,"t":1790043323,"m":"deepseek-v4-flash","a":48,"i":48419,"o":8429,"c":2181248,"w":0,"g":0,"u":0.015246},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-28","xd":0,"t":1790598921,"m":"deepseek-flash","a":3,"i":1381,"o":186,"c":384,"w":0,"g":174,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-28","xd":0,"t":1790599130,"m":"deepseek-v4-flash","a":13,"i":13057,"o":3779,"c":628864,"w":0,"g":0,"u":0.004647},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-28","xd":0,"t":1790599566,"m":"deepseek-v4-flash","a":28,"i":32650,"o":8098,"c":898688,"w":0,"g":0,"u":0.009355},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-09-29","xd":0,"t":1790667167,"m":"deepseek-v4-flash","a":5,"i":20754,"o":2001,"c":106752,"w":0,"g":0,"u":0.003765},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790750783,"m":"deepseek-v4-pro","a":1,"i":30958,"o":3,"c":0,"w":0,"g":0,"u":0.013469},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790750920,"m":"deepseek-v4-pro","a":1,"i":25545,"o":3,"c":5376,"w":0,"g":0,"u":0.011134},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790751873,"m":"deepseek-v4-pro","a":1,"i":1716,"o":5024,"c":77824,"w":0,"g":4996,"u":0.005399},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790761967,"m":"deepseek-v4-pro","a":37,"i":86088,"o":40041,"c":2469504,"w":0,"g":31546,"u":0.081236},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790767110,"m":"deepseek-v4-pro","a":1,"i":21256,"o":56,"c":0,"w":0,"g":24,"u":0.009295},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790767162,"m":"deepseek-v4-pro","a":1,"i":17006,"o":74,"c":3968,"w":0,"g":35,"u":0.007476},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790767339,"m":"deepseek-v4-pro","a":4,"i":9987,"o":1035,"c":77312,"w":0,"g":655,"u":0.005525},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790767484,"m":"deepseek-v4-pro","a":4,"i":9323,"o":13379,"c":90112,"w":0,"g":12987,"u":0.016022},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790767587,"m":"deepseek-v4-pro","a":8,"i":30711,"o":12965,"c":220032,"w":0,"g":11795,"u":0.025436},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790768300,"m":"deepseek-v4-pro","a":1,"i":34263,"o":387,"c":0,"w":0,"g":373,"u":0.015241},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790768325,"m":"deepseek-v4-pro","a":1,"i":23419,"o":3465,"c":0,"w":0,"g":3340,"u":0.013202},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790772357,"m":"deepseek-v4-flash","a":1,"i":17275,"o":303,"c":6912,"w":0,"g":294,"u":0.002523},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790775231,"m":"deepseek-v4-flash","a":3,"i":18724,"o":1001,"c":57088,"w":0,"g":696,"u":0.003061},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-09-30","xd":0,"t":1790775943,"m":"deepseek-flash","a":1,"i":317,"o":105,"c":128,"w":0,"g":101,"u":0.0},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-09-30","xd":0,"t":1790775967,"m":"deepseek-v4-flash","a":4,"i":32333,"o":1229,"c":89984,"w":0,"g":720,"u":0.005123},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-09-30","xd":0,"t":1790776668,"m":"deepseek-v4-flash","a":1,"i":17258,"o":702,"c":10112,"w":0,"g":668,"u":0.002641},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790777161,"m":"deepseek-v4-flash","a":1,"i":17318,"o":179,"c":4480,"w":0,"g":170,"u":0.002487},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790777260,"m":"deepseek-v4-flash","a":1,"i":166,"o":200,"c":21632,"w":0,"g":197,"u":0.00014},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790777289,"m":"deepseek-v4-flash","a":1,"i":179,"o":843,"c":21632,"w":0,"g":444,"u":0.000322},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790777393,"m":"deepseek-v4-flash","a":5,"i":5000,"o":2529,"c":123520,"w":0,"g":1977,"u":0.001754},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790777689,"m":"deepseek-v4-flash","a":1,"i":179,"o":208,"c":21632,"w":0,"g":53,"u":0.000144},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790777709,"m":"deepseek-v4-flash","a":2,"i":1446,"o":867,"c":43904,"w":0,"g":715,"u":0.000568},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-09-30","xd":0,"t":1790778997,"m":"deepseek-v4-flash","a":2,"i":24306,"o":3793,"c":34688,"w":0,"g":3474,"u":0.004562},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790780794,"m":"deepseek-v4-flash","a":1,"i":21312,"o":165,"c":768,"w":0,"g":141,"u":0.003032},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790780832,"m":"deepseek-v4-flash","a":1,"i":16667,"o":9,"c":5376,"w":0,"g":0,"u":0.002351},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790781546,"m":"deepseek-v4-flash","a":1,"i":17213,"o":3346,"c":17280,"w":0,"g":3031,"u":0.003395},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-09-30","xd":0,"t":1790781583,"m":"deepseek-v4-flash","a":4,"i":31065,"o":4611,"c":131328,"w":0,"g":3978,"u":0.006008},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-09-30","xd":0,"t":1790781650,"m":"deepseek-v4-flash","a":2,"i":24405,"o":968,"c":26368,"w":0,"g":855,"u":0.003762},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790785931,"m":"deepseek-v4-flash","a":8,"i":49725,"o":6933,"c":328960,"w":0,"g":5294,"u":0.009824},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790787295,"m":"deepseek-v4-flash","a":1,"i":20599,"o":1579,"c":8192,"w":0,"g":1374,"u":0.003349},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790787518,"m":"deepseek-v4-flash","a":3,"i":20761,"o":516,"c":54528,"w":0,"g":181,"u":0.003204},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790836815,"m":"deepseek-v4-flash","a":2,"i":26577,"o":867,"c":28672,"w":0,"g":394,"u":0.004044},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790836832,"m":"deepseek-v4-flash","a":2,"i":19086,"o":665,"c":36352,"w":0,"g":233,"u":0.00296},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-01","xd":0,"t":1790836971,"m":"deepseek-v4-pro","a":3,"i":29071,"o":1004,"c":46592,"w":0,"g":409,"u":0.013688},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-01","xd":0,"t":1790837014,"m":"deepseek-v4-pro","a":3,"i":6108,"o":1615,"c":69888,"w":0,"g":943,"u":0.004315},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790837730,"m":"deepseek-v4-flash","a":2,"i":22669,"o":656,"c":23040,"w":0,"g":316,"u":0.003422},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790837775,"m":"deepseek-v4-flash","a":6,"i":18667,"o":1199,"c":122496,"w":0,"g":332,"u":0.003292},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790837777,"m":"deepseek-v4-flash","a":2,"i":3441,"o":3638,"c":55168,"w":0,"g":3315,"u":0.001655},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790837904,"m":"deepseek-v4-flash","a":8,"i":14521,"o":9329,"c":314240,"w":0,"g":7831,"u":0.005525},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790837981,"m":"deepseek-v4-flash","a":6,"i":33418,"o":16929,"c":241920,"w":0,"g":16059,"u":0.010096},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790838077,"m":"deepseek-v4-flash","a":4,"i":5159,"o":10206,"c":137344,"w":0,"g":8667,"u":0.003965},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790838127,"m":"deepseek-v4-flash","a":2,"i":24877,"o":293,"c":25216,"w":0,"g":190,"u":0.003635},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":1,"t":1790838211,"m":"deepseek-v4-flash","a":5,"i":65074,"o":34986,"c":111488,"w":0,"g":34952,"u":0.019219},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790838425,"m":"deepseek-v4-flash","a":4,"i":21356,"o":1940,"c":86144,"w":0,"g":1628,"u":0.003774},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790838469,"m":"deepseek-v4-flash","a":4,"i":29215,"o":8536,"c":124800,"w":0,"g":7928,"u":0.00683},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790838487,"m":"deepseek-v4-flash","a":3,"i":581,"o":716,"c":75520,"w":0,"g":419,"u":0.000493},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790839145,"m":"deepseek-v4-flash","a":2,"i":19165,"o":155,"c":30848,"w":0,"g":70,"u":0.002813},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790839972,"m":"deepseek-v4-flash","a":2,"i":19255,"o":431,"c":31104,"w":0,"g":264,"u":0.002903},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790840057,"m":"deepseek-v4-flash","a":5,"i":4589,"o":3964,"c":164608,"w":0,"g":3319,"u":0.002213},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790840456,"m":"deepseek-v4-flash","a":18,"i":46827,"o":23749,"c":878848,"w":0,"g":20693,"u":0.015666},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790840520,"m":"deepseek-v4-flash","a":10,"i":9071,"o":13272,"c":889856,"w":0,"g":5620,"u":0.007478},{"p":"xiaoyue","n":"小月","r":"内容/表达","d":"2026-10-01","xd":0,"t":1790840926,"m":"deepseek-v4-flash","a":5,"i":31078,"o":2511,"c":144256,"w":0,"g":1158,"u":0.005458},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790852021,"m":"deepseek-v4-flash","a":4,"i":25356,"o":2527,"c":109312,"w":0,"g":1984,"u":0.004563},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790852068,"m":"deepseek-v4-flash","a":6,"i":10899,"o":7266,"c":224256,"w":0,"g":6356,"u":0.004188},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790852391,"m":"deepseek-v4-flash","a":1,"i":28416,"o":2315,"c":6144,"w":0,"g":2007,"u":0.004644},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790852445,"m":"deepseek-v4-flash","a":1,"i":17273,"o":936,"c":17280,"w":0,"g":749,"u":0.002729},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790852663,"m":"deepseek-v4-flash","a":3,"i":14768,"o":22400,"c":105472,"w":0,"g":21537,"u":0.008635},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790852726,"m":"deepseek-v4-flash","a":10,"i":28515,"o":8181,"c":315904,"w":0,"g":6931,"u":0.007167},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790852764,"m":"deepseek-v4-flash","a":1,"i":28633,"o":5099,"c":6144,"w":0,"g":4642,"u":0.005454},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790853442,"m":"deepseek-v4-flash","a":7,"i":7781,"o":11846,"c":276864,"w":0,"g":9994,"u":0.005181},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790853462,"m":"deepseek-v4-flash","a":1,"i":27725,"o":1262,"c":6784,"w":0,"g":1127,"u":0.004254},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790858373,"m":"deepseek-v4-flash","a":1,"i":202,"o":877,"c":34304,"w":0,"g":644,"u":0.00037},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":1,"t":1790860173,"m":"deepseek-v4-flash","a":5,"i":49170,"o":5047,"c":130816,"w":0,"g":4546,"u":0.008663},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790860739,"m":"deepseek-v4-flash","a":1,"i":17300,"o":5220,"c":17280,"w":0,"g":4943,"u":0.003932},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790860929,"m":"deepseek-v4-flash","a":3,"i":20182,"o":3389,"c":88448,"w":0,"g":2749,"u":0.004022},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-01","xd":0,"t":1790861017,"m":"deepseek-v4-flash","a":5,"i":8662,"o":6585,"c":181120,"w":0,"g":5418,"u":0.003564},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790866879,"m":"deepseek-v4-flash","a":1,"i":17230,"o":1293,"c":17280,"w":0,"g":1012,"u":0.002823},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790866886,"m":"deepseek-v4-flash","a":2,"i":17527,"o":5318,"c":54400,"w":0,"g":4680,"u":0.004095},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-01","xd":0,"t":1790866997,"m":"deepseek-v4-flash","a":6,"i":27968,"o":901,"c":136448,"w":0,"g":394,"u":0.00455},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-01","xd":0,"t":1790867038,"m":"deepseek-v4-flash","a":7,"i":32406,"o":6128,"c":206208,"w":0,"g":5598,"u":0.00683},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-01","xd":0,"t":1790867176,"m":"deepseek-v4-flash","a":1,"i":17288,"o":1311,"c":17280,"w":0,"g":1132,"u":0.002836},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790870613,"m":"deepseek-v4-flash","a":3,"i":24592,"o":875,"c":51456,"w":0,"g":324,"u":0.003832},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790870994,"m":"deepseek-v4-flash","a":3,"i":44500,"o":3081,"c":65152,"w":0,"g":2232,"u":0.007275},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790871713,"m":"deepseek-v4-flash","a":8,"i":57450,"o":2700,"c":280960,"w":0,"g":1314,"u":0.009586},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790872087,"m":"deepseek-v4-flash","a":1,"i":28747,"o":138,"c":4096,"w":0,"g":135,"u":0.004075},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790872119,"m":"deepseek-v4-flash","a":1,"i":203,"o":236,"c":32640,"w":0,"g":233,"u":0.000186},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790872775,"m":"deepseek-v4-flash","a":20,"i":53863,"o":21441,"c":1155968,"w":0,"g":16447,"u":0.016781},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790875947,"m":"deepseek-v4-flash","a":1,"i":25429,"o":2155,"c":7424,"w":0,"g":1515,"u":0.004184},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790877774,"m":"deepseek-v4-flash","a":1,"i":196,"o":2237,"c":32640,"w":0,"g":1477,"u":0.000745},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790906578,"m":"deepseek-v4-flash","a":1,"i":23437,"o":124,"c":0,"w":0,"g":29,"u":0.003316},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790908000,"m":"deepseek-v4-flash","a":1,"i":16777,"o":277,"c":6656,"w":0,"g":16,"u":0.002445},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790908193,"m":"deepseek-v4-flash","a":14,"i":9140,"o":11115,"c":456960,"w":0,"g":9002,"u":0.005671},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-02","xd":0,"t":1790911459,"m":"deepseek-v4-flash","a":21,"i":25394,"o":40515,"c":2075776,"w":0,"g":20297,"u":0.020712},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790914054,"m":"deepseek-v4-flash","a":3,"i":22133,"o":4501,"c":63872,"w":0,"g":4321,"u":0.004538},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790914314,"m":"deepseek-v4-flash","a":6,"i":45292,"o":9913,"c":248192,"w":0,"g":8433,"u":0.009811},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-02","xd":0,"t":1790918978,"m":"deepseek-v4-flash","a":9,"i":31884,"o":6776,"c":365568,"w":0,"g":5840,"u":0.007385},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-02","xd":0,"t":1790919176,"m":"deepseek-v4-flash","a":6,"i":10254,"o":5114,"c":215808,"w":0,"g":4097,"u":0.003472},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-02","xd":0,"t":1790919337,"m":"deepseek-v4-flash","a":3,"i":31564,"o":3268,"c":63744,"w":0,"g":2874,"u":0.005512},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-02","xd":0,"t":1790919358,"m":"deepseek-v4-flash","a":10,"i":29688,"o":11586,"c":353408,"w":0,"g":10920,"u":0.00839},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790919729,"m":"deepseek-v4-flash","a":6,"i":31053,"o":8391,"c":249856,"w":0,"g":6197,"u":0.007396},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-02","xd":0,"t":1790926862,"m":"deepseek-v4-flash","a":5,"i":29529,"o":7881,"c":210944,"w":0,"g":6777,"u":0.006931},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790928577,"m":"deepseek-v4-flash","a":4,"i":22496,"o":1472,"c":92800,"w":0,"g":951,"u":0.003821},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790928775,"m":"deepseek-v4-flash","a":4,"i":4724,"o":2183,"c":112256,"w":0,"g":1562,"u":0.001587},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790928943,"m":"deepseek-v4-flash","a":7,"i":10763,"o":7061,"c":246912,"w":0,"g":6104,"u":0.004175},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-02","xd":0,"t":1790929027,"m":"deepseek-v4-flash","a":5,"i":4272,"o":1653,"c":141696,"w":0,"g":1005,"u":0.001458},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-03","xd":0,"t":1790981318,"m":"deepseek-v4-pro","a":1,"i":49312,"o":76,"c":0,"w":0,"g":56,"u":0.021517},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-03","xd":0,"t":1790982494,"m":"deepseek-v4-flash","a":7,"i":19354,"o":2865,"c":162688,"w":0,"g":1987,"u":0.003967},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-03","xd":0,"t":1790982716,"m":"deepseek-v4-flash","a":10,"i":7984,"o":5394,"c":275584,"w":0,"g":4385,"u":0.0034},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-03","xd":0,"t":1790982824,"m":"deepseek-v4-flash","a":1,"i":16772,"o":20,"c":6656,"w":0,"g":0,"u":0.002372},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-04","xd":0,"t":1791054025,"m":"deepseek-v4-flash","a":5,"i":16501,"o":1682,"c":110336,"w":0,"g":1204,"u":0.00309},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-04","xd":0,"t":1791074654,"m":"deepseek-flash","a":2,"i":1082,"o":115,"c":0,"w":0,"g":107,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-04","xd":0,"t":1791074657,"m":"deepseek-v4-flash","a":16,"i":34320,"o":5843,"c":491904,"w":0,"g":0,"u":0.007818},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-04","xd":0,"t":1791074705,"m":"deepseek-v4-flash","a":16,"i":10667,"o":9044,"c":801408,"w":0,"g":0,"u":0.00627},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-05","xd":0,"t":1791140545,"m":"deepseek-v4-flash","a":19,"i":37367,"o":26189,"c":808704,"w":0,"g":22907,"u":0.014829},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-06","xd":0,"t":1791226849,"m":"deepseek-v4-flash","a":11,"i":21494,"o":5493,"c":303232,"w":0,"g":3977,"u":0.005396},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-07","xd":0,"t":1791313225,"m":"deepseek-v4-flash","a":6,"i":16528,"o":961,"c":134528,"w":0,"g":385,"u":0.00296},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-11","xd":0,"t":1791658842,"m":"deepseek-v4-flash","a":10,"i":19570,"o":3870,"c":262656,"w":0,"g":2585,"u":0.004559},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-11","xd":0,"t":1791685293,"m":"deepseek-v4-flash","a":12,"i":41698,"o":8152,"c":379776,"w":0,"g":5665,"u":0.009184},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-11","xd":0,"t":1791685690,"m":"deepseek-v4-flash","a":13,"i":32907,"o":11165,"c":438528,"w":0,"g":8616,"u":0.008961},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-11","xd":0,"t":1791685848,"m":"deepseek-v4-flash","a":1,"i":1367,"o":17,"c":23296,"w":0,"g":12,"u":0.000261},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-11","xd":0,"t":1791718357,"m":"deepseek-v4-flash","a":1,"i":28638,"o":1672,"c":7040,"w":0,"g":1524,"u":0.004497},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-11","xd":0,"t":1791718425,"m":"deepseek-v4-flash","a":6,"i":35590,"o":13459,"c":282880,"w":0,"g":11550,"u":0.009543},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-12","xd":1,"t":1791737098,"m":"deepseek-v4-flash","a":16,"i":63259,"o":25493,"c":974592,"w":0,"g":22112,"u":0.018723},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-12","xd":0,"t":1791737268,"m":"deepseek-flash","a":1,"i":25857,"o":7358,"c":0,"w":0,"g":1261,"u":0.0},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-12","xd":0,"t":1791737276,"m":"deepseek-v4-flash","a":16,"i":23445,"o":39841,"c":1807360,"w":0,"g":19374,"u":0.019498},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-12","xd":0,"t":1791745245,"m":"deepseek-v4-flash","a":2,"i":16750,"o":1893,"c":34432,"w":0,"g":1467,"u":0.002971},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-12","xd":0,"t":1791745329,"m":"deepseek-v4-flash","a":20,"i":32912,"o":19057,"c":828544,"w":0,"g":15780,"u":0.012264},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-12","xd":0,"t":1791763420,"m":"deepseek-v4-pro","a":14,"i":103035,"o":22841,"c":1282816,"w":0,"g":19370,"u":0.069342},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-12","xd":1,"t":1791815480,"m":"deepseek-v4-flash","a":17,"i":18169,"o":24731,"c":3022848,"w":0,"g":20504,"u":0.017932},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-13","xd":0,"t":1791823087,"m":"deepseek-v4-pro","a":17,"i":96898,"o":23618,"c":1681536,"w":0,"g":15783,"u":0.068794},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-13","xd":0,"t":1791831655,"m":"deepseek-v4-flash","a":4,"i":18440,"o":2529,"c":98176,"w":0,"g":1776,"u":0.003565},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-13","xd":0,"t":1791831742,"m":"deepseek-v4-flash","a":16,"i":38024,"o":20010,"c":655488,"w":0,"g":16743,"u":0.012762},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-13","xd":0,"t":1791850030,"m":"deepseek-v4-pro","a":15,"i":66813,"o":20007,"c":1328000,"w":0,"g":16523,"u":0.051284},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-13","xd":0,"t":1791896809,"m":"deepseek-v4-pro","a":10,"i":106394,"o":14182,"c":800512,"w":0,"g":10471,"u":0.061522},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-14","xd":0,"t":1791918082,"m":"deepseek-v4-flash","a":11,"i":28843,"o":10570,"c":349568,"w":0,"g":7825,"u":0.007976},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-14","xd":0,"t":1791918091,"m":"deepseek-v4-flash","a":4,"i":15256,"o":1948,"c":90368,"w":0,"g":1243,"u":0.002934},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-14","xd":0,"t":1791932553,"m":"deepseek-v4-flash","a":1,"i":32000,"o":1550,"c":3712,"w":0,"g":1447,"u":0.004924},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-15","xd":0,"t":1791995681,"m":"deepseek-v4-pro","a":15,"i":128085,"o":18145,"c":1793792,"w":0,"g":12278,"u":0.078006},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-15","xd":0,"t":1792004441,"m":"deepseek-v4-flash","a":2,"i":18871,"o":1101,"c":35968,"w":0,"g":963,"u":0.003051},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-15","xd":0,"t":1792004488,"m":"deepseek-v4-flash","a":12,"i":25797,"o":11094,"c":383360,"w":0,"g":9012,"u":0.007791},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-15","xd":0,"t":1792036980,"m":"deepseek-v4-pro","a":6,"i":35017,"o":7096,"c":361984,"w":0,"g":5016,"u":0.022718},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-15","xd":0,"t":1792062468,"m":"deepseek-v4-flash","a":6,"i":35916,"o":9677,"c":278144,"w":0,"g":8343,"u":0.008517},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-15","xd":0,"t":1792069540,"m":"deepseek-v4-pro","a":14,"i":50963,"o":19900,"c":1171968,"w":0,"g":13180,"u":0.04373},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-15","xd":0,"t":1792073094,"m":"deepseek-v4-pro","a":11,"i":63099,"o":15301,"c":937728,"w":0,"g":9855,"u":0.044159},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-16","xd":0,"t":1792090850,"m":"deepseek-v4-flash","a":1,"i":14031,"o":18,"c":10624,"w":0,"g":13,"u":0.001999},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-16","xd":0,"t":1792090857,"m":"deepseek-v4-flash","a":12,"i":20009,"o":4484,"c":325376,"w":0,"g":2655,"u":0.004968},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-16","xd":0,"t":1792146263,"m":"deepseek-v4-flash","a":6,"i":31222,"o":3662,"c":156160,"w":0,"g":2994,"u":0.005834},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-16","xd":0,"t":1792151400,"m":"deepseek-v4-flash","a":5,"i":39977,"o":1545,"c":136192,"w":0,"g":527,"u":0.006411},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-16","xd":0,"t":1792152046,"m":"deepseek-v4-flash","a":3,"i":32653,"o":971,"c":53120,"w":0,"g":422,"u":0.004992},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-16","xd":0,"t":1792152390,"m":"deepseek-v4-flash","a":4,"i":29878,"o":1576,"c":99200,"w":0,"g":753,"u":0.004902},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-16","xd":0,"t":1792152817,"m":"deepseek-flash","a":3,"i":1638,"o":941,"c":0,"w":0,"g":929,"u":0.0},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-16","xd":0,"t":1792152898,"m":"deepseek-v4-flash","a":19,"i":79396,"o":26225,"c":1274112,"w":0,"g":16032,"u":0.022026},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-16","xd":0,"t":1792153210,"m":"deepseek-flash","a":3,"i":1670,"o":502,"c":0,"w":0,"g":490,"u":0.0},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-16","xd":0,"t":1792153777,"m":"deepseek-v4-flash","a":21,"i":72456,"o":33165,"c":1441024,"w":0,"g":20948,"u":0.023465},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-16","xd":0,"t":1792154777,"m":"deepseek-flash","a":18,"i":6780,"o":675,"c":2176,"w":0,"g":603,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-16","xd":0,"t":1792154781,"m":"deepseek-v4-flash","a":32,"i":41194,"o":5750,"c":1068672,"w":0,"g":0,"u":0.010369},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-16","xd":0,"t":1792154829,"m":"deepseek-v4-flash","a":13,"i":7410,"o":6469,"c":659584,"w":0,"g":0,"u":0.004696},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-16","xd":0,"t":1792155452,"m":"deepseek-v4-flash","a":6,"i":38717,"o":3653,"c":130944,"w":0,"g":2798,"u":0.00681},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-16","xd":0,"t":1792158597,"m":"deepseek-v4-flash","a":7,"i":36868,"o":3694,"c":206464,"w":0,"g":2985,"u":0.006774},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792158612,"m":"deepseek-v4-pro","a":2,"i":35317,"o":7390,"c":27648,"w":0,"g":7098,"u":0.021892},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792158856,"m":"deepseek-v4-pro","a":2,"i":11897,"o":2810,"c":46848,"w":0,"g":2525,"u":0.00779},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-16","xd":0,"t":1792159017,"m":"deepseek-flash","a":3,"i":3975,"o":3412,"c":0,"w":0,"g":1471,"u":0.0},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-16","xd":0,"t":1792159107,"m":"deepseek-flash","a":12,"i":4602,"o":524,"c":1024,"w":0,"g":476,"u":0.0},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-16","xd":0,"t":1792159116,"m":"deepseek-v4-flash","a":48,"i":131945,"o":42217,"c":4305664,"w":0,"g":30536,"u":0.042349},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-16","xd":0,"t":1792159245,"m":"deepseek-v4-flash","a":25,"i":25686,"o":37726,"c":3635584,"w":0,"g":20238,"u":0.024339},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792159704,"m":"deepseek-v4-pro","a":6,"i":82435,"o":5562,"c":328832,"w":0,"g":4587,"u":0.04189},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-16","xd":0,"t":1792160213,"m":"deepseek-v4-flash","a":9,"i":9273,"o":13159,"c":958848,"w":0,"g":5795,"u":0.007668},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-16","xd":0,"t":1792160534,"m":"deepseek-v4-flash","a":6,"i":31879,"o":2822,"c":160256,"w":0,"g":2109,"u":0.005702},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-16","xd":0,"t":1792160567,"m":"deepseek-v4-flash","a":5,"i":5049,"o":2075,"c":149504,"w":0,"g":1544,"u":0.001706},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792160817,"m":"deepseek-v4-pro","a":14,"i":104193,"o":18754,"c":1063552,"w":0,"g":12156,"u":0.065495},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792161059,"m":"deepseek-v4-pro","a":12,"i":126284,"o":33048,"c":1299456,"w":0,"g":27229,"u":0.088396},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-16","xd":0,"t":1792161134,"m":"deepseek-flash","a":3,"i":1397,"o":174,"c":256,"w":0,"g":162,"u":0.0},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792161261,"m":"deepseek-v4-pro","a":1,"i":47586,"o":439,"c":2688,"w":0,"g":225,"u":0.021092},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-16","xd":0,"t":1792161359,"m":"deepseek-v4-flash","a":21,"i":103346,"o":43368,"c":1554048,"w":0,"g":26736,"u":0.030963},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-16","xd":0,"t":1792161396,"m":"deepseek-v4-pro","a":1,"i":98,"o":596,"c":50176,"w":0,"g":432,"u":0.000743},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-17","xd":1,"t":1792168397,"m":"deepseek-v4-flash","a":29,"i":88309,"o":29859,"c":1606016,"w":0,"g":17189,"u":0.025221},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792168820,"m":"deepseek-v4-flash","a":5,"i":47451,"o":3491,"c":98944,"w":0,"g":2552,"u":0.007898},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-17","xd":0,"t":1792168820,"m":"deepseek-v4-pro","a":10,"i":103832,"o":19963,"c":642560,"w":0,"g":14362,"u":0.064864},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":1,"t":1792172896,"m":"deepseek-v4-flash","a":11,"i":47822,"o":9322,"c":436480,"w":0,"g":7704,"u":0.010527},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-17","xd":0,"t":1792173043,"m":"deepseek-v4-flash","a":21,"i":58674,"o":18627,"c":978048,"w":0,"g":14100,"u":0.016168},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-17","xd":0,"t":1792173445,"m":"deepseek-v4-flash","a":12,"i":41359,"o":16266,"c":480384,"w":0,"g":14757,"u":0.01169},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-17","xd":1,"t":1792175787,"m":"deepseek-v4-flash","a":101,"i":227440,"o":175987,"c":14934656,"w":0,"g":160291,"u":0.122935},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792178997,"m":"deepseek-v4-flash","a":11,"i":31056,"o":5971,"c":286080,"w":0,"g":4280,"u":0.006821},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792179054,"m":"deepseek-v4-flash","a":2,"i":19388,"o":2739,"c":26496,"w":0,"g":2073,"u":0.003555},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792181112,"m":"deepseek-v4-flash","a":4,"i":27338,"o":3172,"c":84608,"w":0,"g":2074,"u":0.004952},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792182782,"m":"deepseek-v4-flash","a":21,"i":78860,"o":44666,"c":1531776,"w":0,"g":23992,"u":0.027836},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792186410,"m":"deepseek-v4-flash","a":14,"i":13628,"o":25095,"c":1758720,"w":0,"g":11673,"u":0.013859},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792188610,"m":"deepseek-v4-flash","a":1,"i":21657,"o":83,"c":8704,"w":0,"g":38,"u":0.00308},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792188676,"m":"deepseek-v4-flash","a":1,"i":30150,"o":104,"c":0,"w":0,"g":70,"u":0.00425},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792188763,"m":"deepseek-v4-flash","a":2,"i":334,"o":1372,"c":60544,"w":0,"g":1308,"u":0.0006},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792188788,"m":"deepseek-v4-flash","a":1,"i":30334,"o":1,"c":0,"w":0,"g":0,"u":0.004247},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792188821,"m":"deepseek-v4-flash","a":1,"i":30125,"o":41,"c":0,"w":0,"g":0,"u":0.004229},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792189070,"m":"deepseek-v4-flash","a":4,"i":7295,"o":1356,"c":123264,"w":0,"g":0,"u":0.001746},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792189089,"m":"deepseek-v4-flash","a":1,"i":151,"o":312,"c":30208,"w":0,"g":0,"u":0.000193},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-17","xd":0,"t":1792189250,"m":"deepseek-v4-flash","a":17,"i":65150,"o":3554,"c":709120,"w":0,"g":0,"u":0.012102},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792189256,"m":"deepseek-v4-flash","a":5,"i":30067,"o":1198,"c":109056,"w":0,"g":0,"u":0.00485},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-17","xd":0,"t":1792189360,"m":"deepseek-v4-flash","a":7,"i":53543,"o":1788,"c":342272,"w":0,"g":0,"u":0.008955},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792189419,"m":"deepseek-v4-flash","a":2,"i":3527,"o":332,"c":60416,"w":0,"g":0,"u":0.000756},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792189453,"m":"deepseek-flash","a":2,"i":833,"o":107,"c":128,"w":0,"g":99,"u":0.0},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792189479,"m":"deepseek-v4-flash","a":5,"i":33984,"o":6646,"c":145536,"w":0,"g":5414,"u":0.007026},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792189716,"m":"deepseek-flash","a":7,"i":2876,"o":405,"c":896,"w":0,"g":377,"u":0.0},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792189820,"m":"deepseek-v4-flash","a":7,"i":13607,"o":13283,"c":743936,"w":0,"g":8428,"u":0.007707},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792189821,"m":"deepseek-v4-flash","a":16,"i":57564,"o":15035,"c":997760,"w":0,"g":10787,"u":0.015062},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-17","xd":0,"t":1792195288,"m":"deepseek-flash","a":3,"i":1328,"o":327,"c":0,"w":0,"g":315,"u":0.0},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-17","xd":0,"t":1792195475,"m":"deepseek-v4-pro","a":15,"i":96625,"o":16972,"c":1111808,"w":0,"g":13329,"u":0.060828},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-17","xd":0,"t":1792195490,"m":"deepseek-v4-flash","a":28,"i":77585,"o":26143,"c":2047360,"w":0,"g":13322,"u":0.023915},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792206431,"m":"deepseek-v4-flash","a":4,"i":41549,"o":995,"c":94080,"w":0,"g":0,"u":0.006359},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-17","xd":0,"t":1792206457,"m":"deepseek-v4-flash","a":6,"i":51975,"o":1773,"c":171648,"w":0,"g":0,"u":0.008254},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792206468,"m":"deepseek-v4-flash","a":1,"i":30379,"o":176,"c":0,"w":0,"g":0,"u":0.004302},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792206478,"m":"deepseek-v4-flash","a":8,"i":30771,"o":4226,"c":196352,"w":0,"g":2170,"u":0.006041},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-17","xd":0,"t":1792206689,"m":"deepseek-v4-flash","a":10,"i":23261,"o":2013,"c":351744,"w":0,"g":0,"u":0.004805},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792206723,"m":"deepseek-v4-flash","a":1,"i":264,"o":204,"c":30080,"w":0,"g":0,"u":0.000178},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-17","xd":0,"t":1792206748,"m":"deepseek-v4-flash","a":7,"i":15106,"o":977,"c":235648,"w":0,"g":0,"u":0.003048},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-17","xd":0,"t":1792206906,"m":"deepseek-v4-flash","a":3,"i":27611,"o":151,"c":54528,"w":0,"g":0,"u":0.00406},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792207055,"m":"deepseek-v4-flash","a":10,"i":55684,"o":1661,"c":339200,"w":0,"g":0,"u":0.009211},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792207102,"m":"deepseek-v4-flash","a":9,"i":34436,"o":5192,"c":251264,"w":0,"g":2438,"u":0.006978},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-17","xd":0,"t":1792207183,"m":"deepseek-v4-flash","a":1,"i":35970,"o":156,"c":0,"w":0,"g":60,"u":0.005079},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792207389,"m":"deepseek-v4-flash","a":5,"i":27779,"o":7020,"c":153728,"w":0,"g":4787,"u":0.006285},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792208079,"m":"deepseek-flash","a":3,"i":2262,"o":137,"c":256,"w":0,"g":125,"u":0.0},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792208119,"m":"deepseek-v4-flash","a":9,"i":12282,"o":4575,"c":624256,"w":0,"g":1881,"u":0.004748},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792208323,"m":"deepseek-v4-flash","a":15,"i":58472,"o":16037,"c":712960,"w":0,"g":11379,"u":0.014673},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792208456,"m":"deepseek-flash","a":8,"i":5124,"o":511,"c":384,"w":0,"g":479,"u":0.0},{"p":"xiaojing","n":"小镜","r":"行为模式洞察","d":"2026-10-17","xd":0,"t":1792208474,"m":"deepseek-v4-flash","a":24,"i":182083,"o":39005,"c":1580416,"w":0,"g":25702,"u":0.040838},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-17","xd":0,"t":1792209889,"m":"deepseek-v4-pro","a":7,"i":102541,"o":9159,"c":594688,"w":0,"g":7091,"u":0.054729},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-17","xd":0,"t":1792215031,"m":"deepseek-v4-flash","a":1,"i":24929,"o":7,"c":5632,"w":0,"g":0,"u":0.003508},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-17","xd":0,"t":1792215116,"m":"deepseek-v4-flash","a":1,"i":24968,"o":23,"c":1664,"w":0,"g":0,"u":0.003507},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-17","xd":0,"t":1792228342,"m":"deepseek-v4-flash","a":1,"i":25214,"o":736,"c":0,"w":0,"g":0,"u":0.003736},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-17","xd":0,"t":1792228436,"m":"deepseek-v4-flash","a":1,"i":37718,"o":416,"c":0,"w":0,"g":0,"u":0.005397},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792236199,"m":"deepseek-v4-flash","a":8,"i":29226,"o":2056,"c":194816,"w":0,"g":649,"u":0.005213},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792236360,"m":"deepseek-v4-flash","a":3,"i":23179,"o":1809,"c":51712,"w":0,"g":1473,"u":0.003896},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792236504,"m":"deepseek-v4-flash","a":7,"i":7293,"o":2831,"c":177920,"w":0,"g":1536,"u":0.002312},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792236817,"m":"deepseek-v4-flash","a":6,"i":48575,"o":1636,"c":176256,"w":0,"g":564,"u":0.007752},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792236874,"m":"deepseek-v4-flash","a":2,"i":6008,"o":546,"c":50688,"w":0,"g":201,"u":0.001136},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792237030,"m":"deepseek-v4-flash","a":3,"i":23709,"o":2221,"c":58624,"w":0,"g":1732,"u":0.004105},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792237482,"m":"deepseek-v4-flash","a":6,"i":25108,"o":2992,"c":158336,"w":0,"g":1856,"u":0.004796},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792237674,"m":"deepseek-v4-flash","a":2,"i":15561,"o":1481,"c":35712,"w":0,"g":1058,"u":0.002693},{"p":"xiaoyue","n":"小月","r":"内容/表达","d":"2026-10-17","xd":1,"t":1792239470,"m":"deepseek-v4-flash","a":21,"i":168058,"o":20502,"c":843008,"w":0,"g":13738,"u":0.031629},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-17","xd":0,"t":1792239509,"m":"deepseek-v4-flash","a":5,"i":14555,"o":11396,"c":696448,"w":0,"g":6066,"u":0.007179},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-17","xd":0,"t":1792240264,"m":"deepseek-v4-flash","a":2,"i":22413,"o":293,"c":25088,"w":0,"g":184,"u":0.00329},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-17","xd":0,"t":1792242303,"m":"deepseek-v4-pro","a":12,"i":89714,"o":14831,"c":780416,"w":0,"g":11823,"u":0.054758},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-17","xd":0,"t":1792245936,"m":"deepseek-v4-pro","a":11,"i":84599,"o":18101,"c":795392,"w":0,"g":12562,"u":0.055432},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792254945,"m":"deepseek-v4-pro","a":12,"i":103335,"o":25674,"c":936064,"w":0,"g":17899,"u":0.07068},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792281663,"m":"deepseek-v4-flash","a":4,"i":27777,"o":6151,"c":114048,"w":0,"g":4010,"u":0.00593},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-18","xd":0,"t":1792281768,"m":"deepseek-flash","a":3,"i":1429,"o":468,"c":0,"w":0,"g":456,"u":0.0},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-18","xd":0,"t":1792281773,"m":"deepseek-v4-flash","a":24,"i":64466,"o":16345,"c":1296128,"w":0,"g":7244,"u":0.017231},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792281906,"m":"deepseek-v4-pro","a":19,"i":87860,"o":20928,"c":1617152,"w":0,"g":16681,"u":0.062289},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-18","xd":0,"t":1792286687,"m":"deepseek-v4-flash","a":5,"i":26188,"o":983,"c":101248,"w":0,"g":379,"u":0.004225},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-18","xd":0,"t":1792286908,"m":"deepseek-v4-flash","a":1,"i":23737,"o":1549,"c":3328,"w":0,"g":1493,"u":0.003766},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-18","xd":0,"t":1792287086,"m":"deepseek-v4-flash","a":22,"i":33908,"o":6144,"c":647680,"w":0,"g":1591,"u":0.008281},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792287579,"m":"deepseek-v4-flash","a":4,"i":20636,"o":3204,"c":102272,"w":0,"g":2007,"u":0.004073},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792287769,"m":"deepseek-v4-flash","a":3,"i":19930,"o":3268,"c":71040,"w":0,"g":2232,"u":0.003904},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-18","xd":0,"t":1792287858,"m":"deepseek-v4-flash","a":3,"i":30914,"o":1606,"c":57984,"w":0,"g":964,"u":0.00494},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-18","xd":0,"t":1792287928,"m":"deepseek-v4-flash","a":5,"i":2861,"o":1497,"c":146304,"w":0,"g":843,"u":0.001229},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792287947,"m":"deepseek-v4-flash","a":4,"i":4836,"o":2477,"c":115712,"w":0,"g":1336,"u":0.001695},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-18","xd":0,"t":1792288006,"m":"deepseek-v4-flash","a":5,"i":29289,"o":765,"c":115328,"w":0,"g":220,"u":0.004638},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-18","xd":0,"t":1792293896,"m":"deepseek-v4-flash","a":8,"i":41552,"o":4109,"c":273536,"w":0,"g":2969,"u":0.007734},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792296205,"m":"deepseek-v4-pro","a":5,"i":78461,"o":5420,"c":177024,"w":0,"g":3386,"u":0.039488},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792296271,"m":"deepseek-v4-pro","a":2,"i":17848,"o":1547,"c":58368,"w":0,"g":1356,"u":0.009321},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792296339,"m":"deepseek-v4-pro","a":2,"i":9388,"o":987,"c":66560,"w":0,"g":781,"u":0.005184},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792301861,"m":"deepseek-v4-flash","a":2,"i":26832,"o":1359,"c":26496,"w":0,"g":1000,"u":0.004211},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792301910,"m":"deepseek-v4-flash","a":2,"i":19404,"o":1377,"c":33664,"w":0,"g":1097,"u":0.003196},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792301918,"m":"deepseek-v4-flash","a":2,"i":19401,"o":1778,"c":33792,"w":0,"g":1310,"u":0.003309},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792301964,"m":"deepseek-v4-flash","a":2,"i":429,"o":967,"c":52352,"w":0,"g":713,"u":0.000477},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792301996,"m":"deepseek-v4-flash","a":3,"i":1052,"o":2991,"c":81920,"w":0,"g":2298,"u":0.001214},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792302087,"m":"deepseek-v4-flash","a":3,"i":2771,"o":2675,"c":80128,"w":0,"g":1819,"u":0.001361},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792302233,"m":"deepseek-v4-flash","a":2,"i":24187,"o":1639,"c":29568,"w":0,"g":1147,"u":0.003928},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792302364,"m":"deepseek-v4-flash","a":8,"i":8173,"o":3740,"c":242816,"w":0,"g":2245,"u":0.002871},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792302486,"m":"deepseek-v4-flash","a":6,"i":3626,"o":3561,"c":170752,"w":0,"g":2034,"u":0.001983},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792303355,"m":"deepseek-v4-flash","a":1,"i":26831,"o":859,"c":768,"w":0,"g":647,"u":0.003999},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792303373,"m":"deepseek-v4-flash","a":2,"i":27224,"o":1300,"c":28672,"w":0,"g":950,"u":0.004256},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792303426,"m":"deepseek-v4-flash","a":4,"i":1471,"o":1021,"c":111360,"w":0,"g":466,"u":0.000804},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792303499,"m":"deepseek-v4-flash","a":11,"i":6682,"o":4023,"c":332928,"w":0,"g":2460,"u":0.002994},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792303569,"m":"deepseek-v4-flash","a":8,"i":2298,"o":1914,"c":230912,"w":0,"g":830,"u":0.001504},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792304010,"m":"deepseek-v4-flash","a":1,"i":30368,"o":2,"c":0,"w":0,"g":0,"u":0.004252},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792305898,"m":"deepseek-flash","a":2,"i":719,"o":78,"c":256,"w":0,"g":70,"u":0.0},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792311516,"m":"deepseek-v4-flash","a":5,"i":44082,"o":3001,"c":162560,"w":0,"g":2074,"u":0.007467},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-18","xd":0,"t":1792311975,"m":"deepseek-v4-flash","a":1,"i":8600,"o":67,"c":0,"w":0,"g":53,"u":0.001223},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-18","xd":0,"t":1792313159,"m":"deepseek-v4-flash","a":51,"i":73976,"o":24496,"c":3532160,"w":0,"g":15137,"u":0.027106},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792316243,"m":"deepseek-v4-flash","a":6,"i":29369,"o":1628,"c":143232,"w":0,"g":773,"u":0.004969},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792316284,"m":"deepseek-v4-flash","a":2,"i":23102,"o":1316,"c":32896,"w":0,"g":966,"u":0.003695},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792318467,"m":"deepseek-v4-flash","a":3,"i":30441,"o":2465,"c":57472,"w":0,"g":1780,"u":0.005113},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-18","xd":0,"t":1792318523,"m":"deepseek-v4-flash","a":3,"i":20488,"o":1184,"c":65536,"w":0,"g":618,"u":0.003383},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792320621,"m":"deepseek-v4-flash","a":7,"i":27304,"o":2836,"c":211584,"w":0,"g":1726,"u":0.005209},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792324782,"m":"deepseek-v4-flash","a":3,"i":30526,"o":2926,"c":81792,"w":0,"g":2414,"u":0.005322},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-18","xd":0,"t":1792324906,"m":"deepseek-v4-flash","a":5,"i":44096,"o":7468,"c":141440,"w":0,"g":6024,"u":0.008661},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-18","xd":0,"t":1792324971,"m":"deepseek-v4-flash","a":17,"i":53338,"o":16375,"c":778752,"w":0,"g":9227,"u":0.014233},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-18","xd":0,"t":1792326670,"m":"deepseek-flash","a":1,"i":451,"o":64,"c":0,"w":0,"g":60,"u":0.0},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-18","xd":0,"t":1792326767,"m":"deepseek-v4-flash","a":33,"i":69644,"o":17050,"c":2118400,"w":0,"g":8931,"u":0.020456},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-18","xd":0,"t":1792327525,"m":"deepseek-v4-flash","a":3,"i":26727,"o":1564,"c":59392,"w":0,"g":1018,"u":0.004346},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792328684,"m":"deepseek-v4-flash","a":22,"i":66745,"o":21098,"c":1775744,"w":0,"g":10531,"u":0.020224},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-18","xd":0,"t":1792331029,"m":"deepseek-v4-flash","a":37,"i":70267,"o":18434,"c":2200960,"w":0,"g":11173,"u":0.021162},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-18","xd":0,"t":1792331169,"m":"deepseek-v4-flash","a":1,"i":29853,"o":1014,"c":0,"w":0,"g":929,"u":0.004463},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-18","xd":0,"t":1792332270,"m":"deepseek-v4-flash","a":19,"i":52933,"o":19380,"c":1435904,"w":0,"g":9255,"u":0.016858},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-18","xd":0,"t":1792333346,"m":"deepseek-v4-flash","a":1,"i":29751,"o":198,"c":4096,"w":0,"g":0,"u":0.004232},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792333553,"m":"deepseek-v4-flash","a":18,"i":41093,"o":13147,"c":719616,"w":0,"g":8884,"u":0.011449},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-18","xd":0,"t":1792333802,"m":"deepseek-v4-flash","a":19,"i":31896,"o":10530,"c":1077120,"w":0,"g":7612,"u":0.01043},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-18","xd":0,"t":1792338611,"m":"deepseek-v4-flash","a":4,"i":32766,"o":654,"c":97024,"w":0,"g":377,"u":0.005042},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-19","xd":1,"t":1792339218,"m":"deepseek-v4-flash","a":39,"i":53862,"o":33405,"c":2416128,"w":0,"g":14962,"u":0.023659},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-19","xd":1,"t":1792339529,"m":"deepseek-flash","a":5,"i":2351,"o":281,"c":512,"w":0,"g":261,"u":0.0},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-19","xd":0,"t":1792341615,"m":"deepseek-v4-flash","a":20,"i":61208,"o":16877,"c":1362560,"w":0,"g":4347,"u":0.01711},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-19","xd":0,"t":1792368074,"m":"deepseek-v4-flash","a":16,"i":47108,"o":10906,"c":646272,"w":0,"g":3540,"u":0.011458},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-19","xd":0,"t":1792368177,"m":"deepseek-v4-flash","a":18,"i":35615,"o":7818,"c":1030272,"w":0,"g":3987,"u":0.01006},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-19","xd":0,"t":1792370539,"m":"deepseek-flash","a":26,"i":12209,"o":1081,"c":1920,"w":0,"g":977,"u":0.0},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-19","xd":0,"t":1792370546,"m":"deepseek-v4-flash","a":45,"i":93665,"o":33238,"c":3465344,"w":0,"g":15810,"u":0.032123},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-19","xd":0,"t":1792371651,"m":"deepseek-v4-flash","a":5,"i":32446,"o":2405,"c":119296,"w":0,"g":1204,"u":0.00555},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-19","xd":0,"t":1792373112,"m":"deepseek-flash","a":1,"i":1086,"o":53,"c":0,"w":0,"g":49,"u":0.0},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-19","xd":0,"t":1792373116,"m":"deepseek-v4-flash","a":23,"i":38621,"o":3645,"c":777984,"w":0,"g":0,"u":0.008606},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-19","xd":0,"t":1792373192,"m":"deepseek-v4-flash","a":2,"i":23875,"o":358,"c":25728,"w":0,"g":0,"u":0.003515},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-19","xd":0,"t":1792373462,"m":"deepseek-flash","a":3,"i":1823,"o":142,"c":128,"w":0,"g":130,"u":0.0},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-19","xd":0,"t":1792373481,"m":"deepseek-v4-flash","a":25,"i":45615,"o":8312,"c":872576,"w":0,"g":2244,"u":0.011157},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-19","xd":0,"t":1792377049,"m":"deepseek-v4-flash","a":1,"i":16119,"o":1545,"c":13568,"w":0,"g":1510,"u":0.002727},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-19","xd":0,"t":1792382590,"m":"deepseek-v4-flash","a":8,"i":17824,"o":2907,"c":330240,"w":0,"g":958,"u":0.004234},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-19","xd":0,"t":1792413074,"m":"deepseek-flash","a":1,"i":404,"o":30,"c":128,"w":0,"g":26,"u":0.0},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-19","xd":0,"t":1792413097,"m":"deepseek-v4-flash","a":16,"i":39598,"o":7055,"c":709376,"w":0,"g":4370,"u":0.009505},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-19","xd":0,"t":1792413113,"m":"deepseek-v4-flash","a":26,"i":49152,"o":10646,"c":1255552,"w":0,"g":6548,"u":0.013378},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-19","xd":1,"t":1792413272,"m":"deepseek-v4-flash","a":35,"i":358668,"o":66342,"c":2673792,"w":0,"g":53920,"u":0.076276},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-19","xd":0,"t":1792415320,"m":"deepseek-v4-flash","a":26,"i":71626,"o":19107,"c":2135296,"w":0,"g":10125,"u":0.021356},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-19","xd":0,"t":1792417537,"m":"deepseek-v4-flash","a":1,"i":2879,"o":1403,"c":26368,"w":0,"g":1346,"u":0.00087},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-19","xd":0,"t":1792418722,"m":"deepseek-v4-flash","a":25,"i":56809,"o":18853,"c":1796096,"w":0,"g":8296,"u":0.018261},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-20","xd":0,"t":1792428468,"m":"deepseek-v4-flash","a":42,"i":82435,"o":25275,"c":3056512,"w":0,"g":11575,"u":0.027176},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-20","xd":0,"t":1792429336,"m":"deepseek-v4-flash","a":16,"i":34962,"o":8294,"c":711680,"w":0,"g":5368,"u":0.00921},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-20","xd":0,"t":1792454466,"m":"deepseek-v4-flash","a":9,"i":38918,"o":6632,"c":316544,"w":0,"g":3438,"u":0.008192},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-20","xd":0,"t":1792454581,"m":"deepseek-v4-flash","a":13,"i":23866,"o":5484,"c":617344,"w":0,"g":2291,"u":0.006605},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-20","xd":0,"t":1792454708,"m":"deepseek-flash","a":16,"i":6543,"o":475,"c":1024,"w":0,"g":411,"u":0.0},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-20","xd":0,"t":1792454722,"m":"deepseek-v4-flash","a":42,"i":85915,"o":29394,"c":2823936,"w":0,"g":14009,"u":0.028165},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-20","xd":1,"t":1792458515,"m":"deepseek-v4-flash","a":67,"i":75634,"o":132685,"c":15083136,"w":0,"g":101024,"u":0.089973},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-20","xd":0,"t":1792459596,"m":"deepseek-flash","a":2,"i":847,"o":66,"c":128,"w":0,"g":58,"u":0.0},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-20","xd":0,"t":1792459636,"m":"deepseek-v4-flash","a":6,"i":26835,"o":2329,"c":189440,"w":0,"g":1228,"u":0.004939},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-20","xd":0,"t":1792459835,"m":"deepseek-flash","a":1,"i":347,"o":69,"c":128,"w":0,"g":65,"u":0.0},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-20","xd":0,"t":1792459837,"m":"deepseek-v4-flash","a":6,"i":31529,"o":1932,"c":146816,"w":0,"g":1175,"u":0.005366},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-20","xd":1,"t":1792460969,"m":"deepseek-flash","a":15,"i":9543,"o":774,"c":1792,"w":0,"g":714,"u":0.0},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-20","xd":1,"t":1792462170,"m":"deepseek-v4-flash","a":4,"i":34985,"o":192,"c":61824,"w":0,"g":163,"u":0.005125},{"p":"xiaoyue","n":"小月","r":"内容/表达","d":"2026-10-20","xd":0,"t":1792462201,"m":"deepseek-v4-flash","a":1,"i":26197,"o":5,"c":0,"w":0,"g":0,"u":0.003669},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-20","xd":0,"t":1792462202,"m":"deepseek-v4-flash","a":1,"i":22779,"o":5,"c":4480,"w":0,"g":0,"u":0.003203},{"p":"xiaochang","n":"小畅","r":"肠道健康管家","d":"2026-10-20","xd":0,"t":1792462214,"m":"deepseek-v4-flash","a":1,"i":30248,"o":5,"c":1280,"w":0,"g":0,"u":0.00424},{"p":"anomaly-detector","n":"小异","r":"异常值/生活雷达","d":"2026-10-20","xd":0,"t":1792462227,"m":"deepseek-v4-flash","a":1,"i":25612,"o":117,"c":1664,"w":0,"g":112,"u":0.003623},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-20","xd":0,"t":1792462229,"m":"deepseek-v4-flash","a":1,"i":24318,"o":5,"c":5504,"w":0,"g":0,"u":0.003421},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-20","xd":0,"t":1792462892,"m":"deepseek-v4-flash","a":1,"i":14164,"o":80,"c":13440,"w":0,"g":75,"u":0.002043},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792463074,"m":"deepseek-v4-flash","a":6,"i":35018,"o":5908,"c":203776,"w":0,"g":3867,"u":0.007127},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-20","xd":0,"t":1792463420,"m":"deepseek-v4-flash","a":1,"i":15807,"o":657,"c":13568,"w":0,"g":607,"u":0.002435},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-20","xd":0,"t":1792465372,"m":"deepseek-v4-flash","a":1,"i":19372,"o":26,"c":4224,"w":0,"g":0,"u":0.002731},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792465375,"m":"deepseek-v4-flash","a":7,"i":32121,"o":4268,"c":235776,"w":0,"g":3066,"u":0.006352},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-20","xd":0,"t":1792468153,"m":"deepseek-v4-flash","a":1,"i":22671,"o":78,"c":2304,"w":0,"g":45,"u":0.003202},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-20","xd":0,"t":1792468975,"m":"deepseek-v4-flash","a":8,"i":13658,"o":3401,"c":307584,"w":0,"g":1153,"u":0.003726},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792469479,"m":"deepseek-v4-flash","a":1,"i":21763,"o":306,"c":8704,"w":0,"g":250,"u":0.003157},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792469515,"m":"deepseek-v4-flash","a":1,"i":15118,"o":184,"c":15360,"w":0,"g":93,"u":0.002211},{"p":"audio-video-transcription-agent","n":"小录","r":"音视频转录","d":"2026-10-20","xd":0,"t":1792469526,"m":"deepseek-v4-flash","a":2,"i":20980,"o":6,"c":28288,"w":0,"g":0,"u":0.003018},{"p":"xiaoyun","n":"小运","r":"Agent 运维","d":"2026-10-20","xd":0,"t":1792469534,"m":"deepseek-v4-flash","a":2,"i":23807,"o":8,"c":26752,"w":0,"g":0,"u":0.00341},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792469579,"m":"deepseek-v4-flash","a":4,"i":4278,"o":1393,"c":127232,"w":0,"g":799,"u":0.001345},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792469619,"m":"deepseek-v4-flash","a":3,"i":6640,"o":1548,"c":94592,"w":0,"g":931,"u":0.001628},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792469754,"m":"deepseek-v4-flash","a":2,"i":1801,"o":429,"c":60928,"w":0,"g":264,"u":0.000543},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792469802,"m":"deepseek-v4-flash","a":4,"i":6041,"o":2554,"c":132224,"w":0,"g":1862,"u":0.001931},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":0,"t":1792493272,"m":"deepseek-v4-flash","a":23,"i":18505,"o":20353,"c":1470976,"w":0,"g":7902,"u":0.012408},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-20","xd":1,"t":1792499385,"m":"deepseek-flash","a":20,"i":12752,"o":723,"c":896,"w":0,"g":643,"u":0.0},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-20","xd":0,"t":1792499437,"m":"deepseek-v4-flash","a":2,"i":14733,"o":452,"c":33152,"w":0,"g":329,"u":0.002282},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-20","xd":0,"t":1792499516,"m":"deepseek-v4-flash","a":14,"i":39051,"o":7227,"c":655104,"w":0,"g":5084,"u":0.009325},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-20","xd":0,"t":1792501353,"m":"deepseek-v4-flash","a":32,"i":55423,"o":16817,"c":2240512,"w":0,"g":7857,"u":0.018741},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-20","xd":0,"t":1792503971,"m":"deepseek-v4-flash","a":1,"i":2598,"o":591,"c":26624,"w":0,"g":538,"u":0.000604},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-20","xd":0,"t":1792505082,"m":"deepseek-v4-flash","a":25,"i":56744,"o":20860,"c":1915776,"w":0,"g":8046,"u":0.019149},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-20","xd":0,"t":1792506284,"m":"deepseek-flash","a":4,"i":1461,"o":225,"c":256,"w":0,"g":209,"u":0.0},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-20","xd":1,"t":1792506343,"m":"deepseek-v4-flash","a":13,"i":8308,"o":9782,"c":739072,"w":0,"g":3374,"u":0.005971},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-20","xd":1,"t":1792506508,"m":"deepseek-v4-flash","a":39,"i":49944,"o":13879,"c":1611904,"w":0,"g":10369,"u":0.015392},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-20","xd":1,"t":1792511980,"m":"deepseek-v4-flash","a":62,"i":137019,"o":73214,"c":5780352,"w":0,"g":42091,"u":0.055868},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-20","xd":1,"t":1792511990,"m":"deepseek-v4-flash","a":49,"i":46138,"o":55164,"c":6066176,"w":0,"g":22782,"u":0.038891},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":1,"t":1792512342,"m":"deepseek-v4-flash","a":51,"i":42545,"o":65950,"c":5625728,"w":0,"g":31769,"u":0.040174},{"p":"xiaochang","n":"小畅","r":"肠道健康管家","d":"2026-10-21","xd":1,"t":1792512827,"m":"deepseek-flash","a":12,"i":6222,"o":613,"c":768,"w":0,"g":565,"u":0.0},{"p":"xiaochang","n":"小畅","r":"肠道健康管家","d":"2026-10-21","xd":1,"t":1792512886,"m":"deepseek-v4-flash","a":127,"i":371433,"o":88099,"c":19513472,"w":0,"g":43914,"u":0.131306},{"p":"xiaochang","n":"小畅","r":"肠道健康管家","d":"2026-10-21","xd":1,"t":1792512898,"m":"deepseek-v4-flash","a":77,"i":78366,"o":75230,"c":13128704,"w":0,"g":31116,"u":0.068796},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-21","xd":0,"t":1792514369,"m":"deepseek-v4-flash","a":20,"i":63072,"o":21890,"c":1285888,"w":0,"g":10043,"u":0.01856},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792515350,"m":"deepseek-v4-flash","a":1,"i":24151,"o":97,"c":0,"w":0,"g":57,"u":0.003408},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792515786,"m":"deepseek-v4-flash","a":19,"i":35626,"o":10810,"c":884224,"w":0,"g":7635,"u":0.01049},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":1,"t":1792515881,"m":"deepseek-flash","a":3,"i":1913,"o":190,"c":128,"w":0,"g":178,"u":0.0},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":1,"t":1792515890,"m":"deepseek-v4-flash","a":149,"i":434824,"o":219005,"c":30805376,"w":0,"g":201742,"u":0.208452},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-21","xd":1,"t":1792515939,"m":"deepseek-flash","a":4,"i":1375,"o":156,"c":512,"w":0,"g":140,"u":0.0},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-21","xd":1,"t":1792515959,"m":"deepseek-v4-flash","a":7,"i":46620,"o":5548,"c":220160,"w":0,"g":4008,"u":0.008697},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-21","xd":0,"t":1792516576,"m":"deepseek-v4-flash","a":10,"i":34083,"o":5275,"c":333184,"w":0,"g":2665,"u":0.007182},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792516579,"m":"deepseek-v4-flash","a":14,"i":57679,"o":9163,"c":683136,"w":0,"g":5319,"u":0.012553},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792516819,"m":"deepseek-v4-flash","a":19,"i":59710,"o":17132,"c":1191168,"w":0,"g":13344,"u":0.016492},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792516980,"m":"deepseek-v4-flash","a":4,"i":29570,"o":1779,"c":128640,"w":0,"g":833,"u":0.004998},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792517093,"m":"deepseek-v4-flash","a":10,"i":20637,"o":11547,"c":439040,"w":0,"g":9196,"u":0.007352},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-21","xd":0,"t":1792517289,"m":"deepseek-v4-flash","a":2,"i":21009,"o":1690,"c":36096,"w":0,"g":1265,"u":0.003516},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-21","xd":0,"t":1792517294,"m":"deepseek-v4-flash","a":2,"i":17984,"o":1511,"c":38912,"w":0,"g":1038,"u":0.00305},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-21","xd":0,"t":1792517296,"m":"deepseek-v4-flash","a":4,"i":26349,"o":2362,"c":97792,"w":0,"g":1782,"u":0.004624},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":1,"t":1792517506,"m":"deepseek-v4-flash","a":2,"i":17566,"o":1321,"c":50688,"w":0,"g":1140,"u":0.002971},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-21","xd":1,"t":1792517585,"m":"deepseek-v4-flash","a":56,"i":158050,"o":62049,"c":5559680,"w":0,"g":32215,"u":0.055068},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792517750,"m":"deepseek-v4-flash","a":23,"i":61914,"o":15033,"c":1264640,"w":0,"g":10860,"u":0.016418},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-21","xd":1,"t":1792517902,"m":"deepseek-v4-flash","a":36,"i":144714,"o":48363,"c":3141248,"w":0,"g":34171,"u":0.042597},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-21","xd":1,"t":1792517932,"m":"deepseek-v4-flash","a":7,"i":7079,"o":11281,"c":820736,"w":0,"g":7945,"u":0.006448},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792518396,"m":"deepseek-v4-flash","a":22,"i":25807,"o":18238,"c":1192576,"w":0,"g":9852,"u":0.012059},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792518638,"m":"deepseek-v4-flash","a":3,"i":21585,"o":700,"c":73472,"w":0,"g":167,"u":0.003424},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-21","xd":0,"t":1792518734,"m":"deepseek-v4-flash","a":3,"i":49255,"o":3446,"c":82816,"w":0,"g":2815,"u":0.008092},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792518796,"m":"deepseek-v4-flash","a":2,"i":2102,"o":1990,"c":70400,"w":0,"g":1483,"u":0.001049},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792518901,"m":"deepseek-v4-flash","a":16,"i":29707,"o":7488,"c":766336,"w":0,"g":3641,"u":0.008401},{"p":"heart-power-officer","n":"新力","r":"心力运营官","d":"2026-10-21","xd":0,"t":1792518955,"m":"deepseek-v4-flash","a":14,"i":33567,"o":8432,"c":593792,"w":0,"g":3770,"u":0.008723},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792519269,"m":"deepseek-v4-flash","a":3,"i":21227,"o":558,"c":73344,"w":0,"g":318,"u":0.003333},{"p":"fact-recorder","n":"小F","r":"事实记录员","d":"2026-10-21","xd":0,"t":1792519511,"m":"deepseek-v4-flash","a":4,"i":3500,"o":729,"c":130432,"w":0,"g":398,"u":0.001059},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792519960,"m":"deepseek-v4-flash","a":4,"i":24302,"o":903,"c":117248,"w":0,"g":372,"u":0.003983},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792520059,"m":"deepseek-v4-flash","a":3,"i":25332,"o":2984,"c":86784,"w":0,"g":2322,"u":0.004625},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792520750,"m":"deepseek-v4-flash","a":10,"i":19411,"o":1310,"c":269696,"w":0,"g":591,"u":0.003839},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792520819,"m":"deepseek-v4-flash","a":14,"i":10428,"o":14495,"c":566784,"w":0,"g":4515,"u":0.007106},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792540842,"m":"deepseek-v4-flash","a":3,"i":22463,"o":701,"c":83712,"w":0,"g":336,"u":0.003575},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":0,"t":1792540958,"m":"deepseek-v4-flash","a":7,"i":36475,"o":3780,"c":233344,"w":0,"g":2326,"u":0.006818},{"p":"xiaori-daily-report","n":"小日","r":"每日执行闭环","d":"2026-10-21","xd":0,"t":1792540990,"m":"deepseek-v4-flash","a":10,"i":24414,"o":5766,"c":469632,"w":0,"g":3245,"u":0.006347},{"p":"xiaogan","n":"小敢","r":"表达教练","d":"2026-10-21","xd":1,"t":1792541040,"m":"deepseek-v4-flash","a":21,"i":55430,"o":16201,"c":736384,"w":0,"g":9918,"u":0.014358},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":0,"t":1792541623,"m":"deepseek-v4-flash","a":10,"i":34733,"o":3952,"c":376064,"w":0,"g":2369,"u":0.007022},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-21","xd":0,"t":1792541768,"m":"deepseek-v4-flash","a":10,"i":33787,"o":4850,"c":361216,"w":0,"g":2378,"u":0.0071},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792541837,"m":"deepseek-v4-flash","a":16,"i":11593,"o":12106,"c":750976,"w":0,"g":3380,"u":0.007115},{"p":"xiaochang","n":"小畅","r":"肠道健康管家","d":"2026-10-21","xd":0,"t":1792543110,"m":"deepseek-v4-flash","a":7,"i":31721,"o":2230,"c":233728,"w":0,"g":1166,"u":0.00572},{"p":"xiaozhong","n":"小重","r":"身材运营","d":"2026-10-21","xd":0,"t":1792543164,"m":"deepseek-v4-flash","a":9,"i":35514,"o":6122,"c":343808,"w":0,"g":3500,"u":0.007649},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":0,"t":1792543348,"m":"deepseek-v4-flash","a":17,"i":13183,"o":6759,"c":770944,"w":0,"g":3910,"u":0.005897},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792543574,"m":"deepseek-v4-flash","a":15,"i":51382,"o":15646,"c":883584,"w":0,"g":12329,"u":0.014048},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792543624,"m":"deepseek-flash","a":2,"i":713,"o":48,"c":256,"w":0,"g":40,"u":0.0},{"p":"xiaocha","n":"小察","r":"情绪识别","d":"2026-10-21","xd":0,"t":1792543929,"m":"deepseek-v4-flash","a":19,"i":12293,"o":9335,"c":848512,"w":0,"g":5507,"u":0.006711},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":0,"t":1792544796,"m":"deepseek-v4-flash","a":3,"i":35417,"o":401,"c":92544,"w":0,"g":86,"u":0.00533},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792544798,"m":"deepseek-v4-flash","a":4,"i":38428,"o":720,"c":131584,"w":0,"g":360,"u":0.00595},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-21","xd":0,"t":1792544858,"m":"deepseek-v4-flash","a":3,"i":33526,"o":441,"c":80768,"w":0,"g":65,"u":0.005043},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792546190,"m":"deepseek-v4-flash","a":12,"i":14598,"o":7497,"c":535808,"w":0,"g":3453,"u":0.005643},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-21","xd":0,"t":1792546244,"m":"deepseek-v4-flash","a":1,"i":13322,"o":283,"c":12160,"w":0,"g":173,"u":0.001978},{"p":"psychological-consultation","n":"心理","r":"心理咨询 Agent","d":"2026-10-21","xd":0,"t":1792546273,"m":"deepseek-v4-flash","a":17,"i":32731,"o":7148,"c":583168,"w":0,"g":3073,"u":0.008217},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":1,"t":1792546293,"m":"deepseek-v4-flash","a":81,"i":177082,"o":81849,"c":6936448,"w":0,"g":52665,"u":0.067131},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792546409,"m":"deepseek-v4-flash","a":13,"i":13376,"o":4942,"c":539136,"w":0,"g":2148,"u":0.004766},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792546414,"m":"deepseek-v4-flash","a":32,"i":59591,"o":8444,"c":1125248,"w":0,"g":3585,"u":0.013858},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792547106,"m":"deepseek-v4-flash","a":3,"i":26983,"o":472,"c":51968,"w":0,"g":281,"u":0.004055},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792547106,"m":"deepseek-v4-flash","a":2,"i":17660,"o":203,"c":34688,"w":0,"g":134,"u":0.002626},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792547106,"m":"deepseek-v4-flash","a":2,"i":17979,"o":325,"c":34432,"w":0,"g":244,"u":0.002704},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-21","xd":1,"t":1792547344,"m":"deepseek-v4-flash","a":2,"i":47043,"o":431,"c":12416,"w":0,"g":382,"u":0.006741},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":1,"t":1792547346,"m":"deepseek-v4-flash","a":4,"i":36331,"o":1353,"c":99712,"w":0,"g":1205,"u":0.005744},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":0,"t":1792547371,"m":"deepseek-v4-flash","a":10,"i":48684,"o":2588,"c":462848,"w":0,"g":719,"u":0.008836},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792547377,"m":"deepseek-v4-flash","a":6,"i":10501,"o":1737,"c":264448,"w":0,"g":660,"u":0.002697},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-21","xd":0,"t":1792547399,"m":"deepseek-v4-flash","a":4,"i":10535,"o":1035,"c":158080,"w":0,"g":433,"u":0.002207},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792547428,"m":"deepseek-flash","a":4,"i":1394,"o":154,"c":384,"w":0,"g":138,"u":0.0},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":1,"t":1792547481,"m":"deepseek-v4-flash","a":38,"i":117577,"o":27302,"c":2131584,"w":0,"g":15922,"u":0.030074},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792547773,"m":"deepseek-v4-flash","a":6,"i":8166,"o":1257,"c":265216,"w":0,"g":418,"u":0.002238},{"p":"xiaomian","n":"小眠","r":"睡眠资产系统","d":"2026-10-21","xd":0,"t":1792547800,"m":"deepseek-v4-flash","a":9,"i":19172,"o":2435,"c":458496,"w":0,"g":673,"u":0.00465},{"p":"xiaojian","n":"小健","r":"健身教练","d":"2026-10-21","xd":0,"t":1792547816,"m":"deepseek-v4-flash","a":4,"i":9081,"o":1092,"c":161664,"w":0,"g":378,"u":0.00203},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792547828,"m":"deepseek-v4-flash","a":3,"i":6776,"o":510,"c":125184,"w":0,"g":214,"u":0.001442},{"p":"xiaoguanjia","n":"小管家","r":"AI 调度员","d":"2026-10-21","xd":0,"t":1792547879,"m":"deepseek-v4-flash","a":20,"i":23443,"o":4756,"c":571776,"w":0,"g":1652,"u":0.006215},{"p":"xiaoshi","n":"小食","r":"减脂饮食助理","d":"2026-10-21","xd":0,"t":1792547894,"m":"deepseek-v4-flash","a":3,"i":8711,"o":423,"c":126720,"w":0,"g":102,"u":0.001693},{"p":"xiaozhou","n":"小周","r":"周报策划","d":"2026-10-21","xd":0,"t":1792548065,"m":"deepseek-v4-flash","a":4,"i":11776,"o":1616,"c":119168,"w":0,"g":1072,"u":0.002435}]};
+
+const state = { range: 'today', model: 'all', metric: 'cost' };
+
+const $ = id => document.getElementById(id);
+const fmtW = n => {
+  if (n >= 1e8) return (n / 1e8).toFixed(2) + '<small>亿</small>';
+  if (n >= 1e4) return (n / 1e4).toFixed(1) + '<small>万</small>';
+  return Math.round(n).toLocaleString();
+};
+const fmtNum = n => Math.round(n).toLocaleString();
+const fmtUsd = n => {
+  if (n > 0 && n < 0.001) return '<$0.001';
+  return '$' + (n < 1 ? n.toFixed(3) : n.toFixed(2));
+};
+// 名字几乎都是「小X」，取首字全都变成「小」，所以跳过「小」取下一个字
+const initial = s => (s && s.length > 1 && s.charAt(0) === '小') ? s.charAt(1) : (s || '?').charAt(0);
+// 人民币按固定汇率折算，只用于让数额有体感；真实账单以美元为准
+const RATE = 7.2;
+const fmtCny = n => {
+  const v = n * RATE;
+  if (v > 0 && v < 0.01) return '<¥0.01';
+  return '¥' + (v < 100 ? v.toFixed(2) : v.toFixed(1));
+};
+const AV = ['#e8703a','#5b8def','#3fa87a','#a261d1','#d4576a','#be9526','#4a9ba8','#7a6fd6'];
+function avColor(s){
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return AV[h % AV.length];
+}
+
+function pad(n){ return n < 10 ? '0' + n : '' + n; }
+function dstr(offsetDays){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate() + offsetDays);
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+
+function rangeFilter(){
+  const t = dstr(0);
+  switch(state.range){
+    case 'today': return r => r.d === t && !r.xd;
+    case 'yesterday': return r => r.d === dstr(-1) && !r.xd;
+    case '3d': return r => r.d >= dstr(-2) && r.d <= t && !r.xd;
+    case '7d': return r => r.d >= dstr(-6) && r.d <= t && !r.xd;
+    case '30d': return r => r.d >= dstr(-29) && r.d <= t && !r.xd;
+    default: return () => true;
+  }
+}
+
+// 日视图数据源：优先用每日真增量(daily)，无增量数据时回退 same_day 下限；all 视图用会话累计(rows)
+function srcRows(){
+  if (state.range === 'all') return DATA.rows;
+  const dr = DATA.daily || [];
+  const fr = rangeFilter();
+  if (!dr.some(fr)) return DATA.rows.filter(r => fr(r) && !r.xd);  // 回退：当天开当天结下限
+  return dr.filter(fr);
+}
+function modelFilter(){
+  if (state.model === 'all') return () => true;
+  if (state.model === 'other')
+    return r => r.m !== 'deepseek-v4-flash' && r.m !== 'deepseek-v4-pro';
+  return r => r.m === state.model;
+}
+function tokOf(r){
+  return state.metric === 'nocache' ? (r.i + r.o) : (r.i + r.o + r.c + r.w);
+}
+function valOf(r){
+  return state.metric === 'cost' ? r.u : tokOf(r);
+}
+
+function rangeDays(){
+  const t = dstr(0);
+  switch(state.range){
+    case 'today': return [t, t];
+    case 'yesterday': return [dstr(-1), dstr(-1)];
+    case '3d': return [dstr(-2), t];
+    case '7d': return [dstr(-6), t];
+    case '30d': return [dstr(-29), t];
+    default: {
+      const all = DATA.rows.map(r => r.d).sort();
+      return [all[0] || t, all[all.length-1] || t];
+    }
+  }
+}
+const md = s => { const p = s.split('-'); return (+p[1]) + '月' + (+p[2]) + '日'; };
+
+function render(){
+  const rows = srcRows().filter(modelFilter());
+
+  // ---- aggregate by agent ----
+  const map = new Map();
+  rows.forEach(r => {
+    let a = map.get(r.p);
+    if (!a){
+      a = { p:r.p, n:r.n, r:r.r, tok:0, nc:0, api:0, u:0, last:0,
+            i:0, o:0, c:0, w:0, g:0, models:{} };
+      map.set(r.p, a);
+    }
+    a.tok += r.i + r.o + r.c + r.w;
+    a.nc  += r.i + r.o;
+    a.api += r.a;
+    a.u   += r.u;
+    a.i += r.i; a.o += r.o; a.c += r.c; a.w += r.w; a.g += r.g;
+    if (r.t > a.last) a.last = r.t;
+    const mv = state.metric === 'cost' ? r.u : tokOf(r);
+    a.models[r.m] = (a.models[r.m] || 0) + mv;
+  });
+
+  const agents = [...map.values()].filter(a => valOf(a) > 0 || a.u > 0);
+  const sortKey = state.metric === 'cost' ? 'u' : (state.metric === 'nocache' ? 'nc' : 'tok');
+  agents.sort((x, y) => y[sortKey] - x[sortKey]);
+
+  // ---- hero ----
+  const totTok = agents.reduce((s,a)=>s+a.tok,0);
+  const totNc  = agents.reduce((s,a)=>s+a.nc,0);
+  const totApi = agents.reduce((s,a)=>s+a.api,0);
+  const totUsd = agents.reduce((s,a)=>s+a.u,0);
+
+  const totC = agents.reduce((s,a)=>s+a.c,0);
+
+  // 官方平台权威日账：单日视图若有官方录入，头条直接用官方数字（与平台对账）
+  const isSingleDay = (state.range === 'today' || state.range === 'yesterday');
+  const odKey = isSingleDay ? (state.range === 'today' ? dstr(0) : dstr(-1)) : null;
+  const od = (DATA.official_daily && odKey) ? DATA.official_daily[odKey] : null;
+
+  const heroTok = state.metric === 'nocache' ? totNc : totTok;
+  if (od){
+    if (state.metric === 'cost'){
+      $('heroNum').innerHTML = '¥' + od.cost_cny.toFixed(2);   // 主数：费用
+      $('heroUnit').textContent = '';
+      $('heroCny').innerHTML = fmtW(od.tokens) + ' tok';        // 副数(高亮)：token 用量
+      $('heroUsd').textContent = od.requests + ' 次 · 官方口径';
+    } else {
+      $('heroNum').innerHTML = fmtW(od.tokens);
+      $('heroUnit').textContent = 'tokens';
+      $('heroCny').textContent = '¥' + od.cost_cny.toFixed(2);
+      $('heroUsd').textContent = od.requests + ' 次 · 官方口径';
+    }
+  } else {
+    if (state.metric === 'cost'){
+      $('heroNum').innerHTML = fmtCny(totUsd);
+      $('heroUnit').textContent = '';
+      $('heroCny').innerHTML = fmtW(heroTok) + ' tok';         // 副数(高亮)：token 用量
+      $('heroUsd').textContent = '≈ ' + fmtUsd(totUsd) + ' · ' + fmtNum(totApi) + ' 次';
+    } else {
+      $('heroNum').innerHTML = fmtW(heroTok);
+      $('heroUnit').textContent = 'tokens';
+      $('heroCny').textContent = fmtCny(totUsd);
+      $('heroUsd').textContent = '≈ ' + fmtUsd(totUsd);
+    }
+  }
+
+  const [d0, d1] = rangeDays();
+  let span;
+  if (state.range === 'today') span = '<b>' + md(d0) + '</b>（今天）';
+  else if (state.range === 'yesterday') span = '<b>' + md(d0) + '</b>（昨天）';
+  else if (d0 === d1) span = '<b>' + md(d0) + '</b>';
+  else span = '<b>' + md(d0) + '</b> – <b>' + md(d1) + '</b>';
+  let capTail = (state.metric === 'nocache') ? '（不含缓存）' : '';
+  if (state.range === 'today' && !od) capTail += '（下限估算：仅当天开当天结，不含跨天会话当日新增）';
+  if (od) capTail += '（官方平台口径·权威）';
+  $('heroCap').innerHTML = span + ' 一共烧了' + capTail;
+
+  const off = DATA.official || {};
+  if (state.metric === 'cost'){
+    let s = '官方余额 ' + (off.balance_cny != null ? '¥' + off.balance_cny.toFixed(2) : '—');
+    if (off.delta_cny != null){
+      s += ' · 当日真账 ¥' + off.delta_cny.toFixed(2) + '(' + (off.delta_date || '') + ')';
+    } else if (off.balance_cny != null && !od){
+      s += ' · 今日真账待明日04:00自动生成';
+    }
+    if (od) s = '官方平台当日：¥' + od.cost_cny.toFixed(2) + ' · ' + od.requests + '次 · ' + fmtW(od.tokens) + ' tok（权威）｜' + s;
+    $('heroSplit').textContent = s;
+  } else {
+    $('heroSplit').textContent = '新 token ' + fmtW(totNc) + ' · 缓存读 ' + fmtW(totC);
+  }
+  $('bHeadRight').textContent = state.metric === 'cost' ? '预估费用' : '消耗 tokens';
+
+  // 单日 + 官方录入时，提示下方明细是本地下限、总额以官方为准
+  if (od && isSingleDay){
+    $('dncap').textContent = '↑ 头条与统计行已切官方平台当日权威值（' + od.requests + ' 次 / ' + fmtW(od.tokens) + ' tok）。下方「烧得最狠」与按 Agent 排名为本地 same_day 下限估算（跨天常驻会话当日部分本地无法拆分），故明细之和 < 官方总额；明天起增量快照生效后，明细将自动精确对齐官方。';
+  } else {
+    $('dncap').textContent = '';
+  }
+  $('mAgents').textContent = agents.length;
+  // 统计行与头条口径一致：有官方日历时用官方的调用数/均次，避免同卡内官方(577)与本地(406)打架
+  if (od){
+    $('mCalls').textContent = fmtNum(od.requests);
+    $('mPer').textContent = od.requests ? fmtNum(od.tokens / od.requests) + ' tok' : '—';
+  } else {
+    $('mCalls').textContent = fmtNum(totApi);
+    $('mPer').textContent = totApi ? fmtNum(heroTok / totApi) + ' tok' : '—';
+  }
+  $('mCostLab').textContent = '汇率';
+  $('mCost').textContent = '1 : ' + RATE;
+  $('bHeadRight').textContent = state.metric === 'cost' ? '预估费用' : '消耗 tokens';
+
+  // 榜一：跟当前排序走（口径切到费用时，第一名就是花得最贵的那个）
+  const champ = agents[0];
+  if (champ){
+    $('champAv').textContent = initial(champ.n);
+    $('champAv').style.background = avColor(champ.p);
+    $('champName').textContent = champ.n;
+    $('champRole').textContent = champ.r + '　' + fmtNum(champ.api) + ' 次调用';
+    $('champTok').innerHTML = state.metric === 'cost' ? fmtCny(champ.u) : fmtW(champ.tok);
+    $('champShare').textContent = '占 ' + (champ.tok / totTok * 100).toFixed(0) + '%';
+  } else {
+    $('champName').textContent = '—';
+    $('champRole').textContent = '';
+    $('champTok').textContent = '—';
+    $('champShare').textContent = '';
+  }
+
+  // ---- list ----
+  const max = agents.length ? valOf(agents[0]) : 1;
+  const list = $('list');
+  if (!agents.length){
+    list.innerHTML = '<div class="empty">这个时间窗内没有调用记录。<br>换个范围，或重跑采集脚本。</div>';
+  } else {
+    list.innerHTML = agents.map((a, i) => {
+      const rc = i < 3 ? ' r' + (i+1) : '';
+      const v = valOf(a);
+      const pct = Math.max(2, v / max * 100);
+      const brk = Object.entries(a.models).sort((x,y)=>y[1]-x[1]).slice(0,3)
+        .map(([m, mv]) => {
+          const lbl = (DATA.model_label && DATA.model_label[m]) || m;
+          return '<span><b>' + lbl + '</b> ' + (state.metric === 'cost' ? fmtCny(mv) : fmtW(mv)) + '</span>';
+        }).join('');
+      const main = state.metric === 'cost' ? fmtCny(v) : fmtW(v);
+      return '<div class="row">'
+        + '<div class="rank' + rc + '">' + (i+1) + '</div>'
+        + '<div class="av" style="background:' + avColor(a.p) + '">' + initial(a.n) + '</div>'
+        + '<div class="who"><div class="nm">' + a.n + '<span>' + a.r + '</span></div>'
+        + '<div class="brk">' + brk + '</div>'
+        + '<div class="bar"><i style="width:' + pct.toFixed(1) + '%"></i></div></div>'
+        + '<div class="val"><div class="v">' + main + '</div>'
+        + '<div class="x">' + fmtNum(a.api) + ' 次 · ' + (state.metric === 'cost' ? fmtNum(a.tok) + ' tok' : fmtCny(a.u)) + '</div></div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // ---- insights ----
+  const ins = [];
+  if (agents.length){
+    const top = agents[0];
+    const share = top.tok / totTok * 100;
+    ins.push({
+      k: '榜一大哥',
+      v: top.n + '　' + fmtW(top.tok).replace(/<[^>]+>/g,'') + ' tok',
+      d: '占全员 ' + share.toFixed(1) + '%　·　' + fmtNum(top.api) + ' 次调用　·　' + fmtCny(top.u)
+    });
+    const cacheHit = totTok ? agents.reduce((s,a)=>s+a.c,0) / totTok * 100 : 0;
+    const saved = agents.reduce((s,a)=>s+a.c,0);
+    ins.push({
+      k: '缓存命中率',
+      v: cacheHit.toFixed(1) + '%',
+      d: '读完 ' + fmtW(saved).replace(/<[^>]+>/g,'') + ' tok 走了缓存价，这是省钱的唯一手段'
+    });
+    const top3 = agents.slice(0,3).reduce((s,a)=>s+a.tok,0);
+    ins.push({
+      k: '头部集中度',
+      v: (top3 / totTok * 100).toFixed(0) + '%',
+      d: '前三名吃掉全部消耗的 ' + (top3/totTok*100).toFixed(0) + '%'
+    });
+  }
+  $('insights').innerHTML = ins.map(o =>
+    '<div class="icard"><div class="k">' + o.k + '</div><div class="v">' + o.v + '</div>'
+    + '<div class="d">' + o.d + '</div></div>').join('');
+
+  // ---- spark: last 14 days, always full model + cache ----
+  const days = [];
+  for (let i = 13; i >= 0; i--) days.push(dstr(-i));
+  const byDay = {};
+  // 趋势优先用真增量(daily)，无增量时回退 same_day 下限
+  const sparkSrc = (DATA.daily && DATA.daily.length) ? DATA.daily : DATA.rows.filter(r => !r.xd);
+  sparkSrc.forEach(r => { if (r.xd) return; byDay[r.d] = (byDay[r.d] || 0) + r.i + r.o + r.c + r.w; });
+  const mx = Math.max(1, ...days.map(d => byDay[d] || 0));
+  $('spark').innerHTML = days.map((d, idx) => {
+    const v = byDay[d] || 0;
+    const h = v ? Math.max(3, v / mx * 100) : 2;
+    const on = d === dstr(0) ? ' on' : '';
+    const lab = idx % 2 === 0 || d === dstr(0) ? d.slice(5) : '';
+    return '<div class="col' + on + '" title="' + d + ' · ' + fmtW(v).replace(/<[^>]+>/g,'') + ' tok">'
+      + '<i style="height:' + h.toFixed(1) + '%"></i><em>' + lab + '</em></div>';
+  }).join('');
+  // ---- 每日账本：跟着当前筛选走，按日期倒序 ----
+  const dayAgg = {};
+  rows.forEach(r => {
+    if (r.xd) return;
+    const o = dayAgg[r.d] || (dayAgg[r.d] = { t:0, u:0, a:0 });
+    o.t += r.i + r.o + r.c + r.w;
+    o.u += r.u;
+    o.a += r.a;
+  });
+  const dayKeys = Object.keys(dayAgg).sort().reverse();
+  if (!dayKeys.length){
+    $('dtable').innerHTML = '';
+  } else {
+    const head = '<div class="dr hd"><span class="dd">日期</span><span class="dt">消耗 tokens</span><span class="dc">花费</span></div>';
+    const body = dayKeys.map(d => {
+      const o = dayAgg[d];
+      return '<div class="dr"><span class="dd">' + (d.length > 5 ? d.slice(5) : d) + '</span>'
+        + '<span class="dt">' + fmtW(o.t) + '　<em style="font-style:normal;color:var(--ink3);font-size:11px">' + fmtNum(o.a) + ' 次</em></span>'
+        + '<span class="dc">' + fmtCny(o.u) + '</span></div>';
+    }).join('');
+    const sumT = dayKeys.reduce((s,d)=>s+dayAgg[d].t,0);
+    const sumU = dayKeys.reduce((s,d)=>s+dayAgg[d].u,0);
+    const total = '<div class="dr tot"><span class="dd">合计 ' + dayKeys.length + ' 天</span>'
+      + '<span class="dt">' + fmtW(sumT) + '</span><span class="dc">' + fmtCny(sumU) + '</span></div>';
+    $('dtable').innerHTML = head + body + total;
+  }
+}
+
+// ---- filter binding ----
+[['fRange','range'],['fModel','model'],['fMetric','metric']].forEach(([id, key]) => {
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    [...$(id).querySelectorAll('button')].forEach(x => x.classList.remove('on', 'acc'));
+    b.classList.add('on', 'acc');
+    state[key] = b.dataset.v;
+    render();
+  });
+});
+
+// ---- startup ----
+(function(){
+  const gen = new Date(DATA.generated_at * 1000);
+  const gs = gen.getFullYear() + '-' + pad(gen.getMonth()+1) + '-' + pad(gen.getDate())
+    + ' ' + pad(gen.getHours()) + ':' + pad(gen.getMinutes());
+  $('stamp').textContent = gs;
+  if (gen.getFullYear() + '-' + pad(gen.getMonth()+1) + '-' + pad(gen.getDate()) !== dstr(0)){
+    $('stale').classList.add('on');
+    $('stale').textContent = '数据快照是 ' + gs + '，不是今天。要看最新数据，跑一遍 python token_rank.py。';
+  }
+
+  // 默认看今天；今天还没有任何调用时自动退到近 7 天，别让人打开就是一张空榜
+  const t = dstr(0);
+  if (!DATA.rows.some(r => r.d === t && !r.xd)){
+    state.range = '7d';
+    [...$('fRange').querySelectorAll('button')].forEach(x => {
+      const sel = x.dataset.v === '7d';
+      x.classList.toggle('on', sel);
+      x.classList.toggle('acc', sel);
+    });
+    $('stale').classList.add('on');
+    $('stale').textContent = '今天（' + t.slice(5) + '）还没有任何调用记录，先展示近 7 天。';
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
